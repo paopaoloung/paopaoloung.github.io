@@ -22,16 +22,6 @@ button.del { background: #d73a49; width: auto; }
 </head>
 <body>
 
-  const token = "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"; 
-
-async function loadPrivateDirectory() {
-  const response = await fetch(`https://github.com{username}/${repo}/contents/${path}`, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Accept": "application/vnd.github+json"
-    }
-  });
-  const files = await response.json();
   
 <h2>📁 临时文件同步 6sKa7Eqs1hHnk5McmX</h2>
 
@@ -45,7 +35,8 @@ async function loadPrivateDirectory() {
 </div>
 
 <p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-<input id="tokenInput" placeholder="ghp_xxxxxx"/>
+<p class="limit-note">11A7UNAAA0zdZ9cMsOJ3Go_ivWAPdXK3BuSy98k4hQu2650DoTcZ4a3hyMuVyzf3RQJK3HSHGADF9tSxLu</p>
+<input id="tokenInput" placeholder="ghp_xxxxxx" value="github_pat_" />
 <button onclick="saveToken()">保存 Token</button>
 <p class="unshow-txt">github_pat_11A7UNAAA0FGIK2IoL0whp_7vQ5yesvxuVas8F926KGfTg0OzqosG90ddtr6lXVjMa4OGJFKFFm2Y3G</p>
   <hr>
