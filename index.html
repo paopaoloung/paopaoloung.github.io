@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭共享空间</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            margin: 30px 0 15px;
+            padding-left: 10px;
+            border-left: 4px solid var(--primary-color);
+            color: var(--text-main);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .icon {
+            width: 48px;
+            height: 48px;
+            background-color: #eef4fc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .info {
+            flex: 1;
+        }
+
+        .filename {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 4px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        /* 针对不同文件类型的图标颜色微调 */
+        .card.txt .icon { background-color: #fff3e0; color: #ff9800; }
+        .card.pdf .icon { background-color: #ffebee; color: #f44336; }
+        .card.img .icon { background-color: #e8f5e9; color: #4caf50; }
+        .card.zip .icon { background-color: #f3e5f5; color: #9c27b0; }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🏠 家庭共享空间</h1>
+        <p class="subtitle">手机电脑随时访问 · 点击即可下载查看</p>
+    </header>
+
+    <!-- 笔记区域 -->
+    <h2 class="section-title">📝 最新笔记 (TXT)</h2>
+    <div class="grid">
+        <!-- 示例项目1：请修改 href 为实际文件名 -->
+        <a href="./notes/temp.txt" class="card txt" target="_blank">
+            <div class="icon">📄</div>
+            <div class="info">
+                <span class="filename">购物清单.txt</span>
+                <span class="meta">最后更新: 2026-07-24</span>
+            </div>
+        </a>
+
+        <!-- 示例项目2 -->
+        <a href="./notes/family_rules.txt" class="card txt" target="_blank">
+            <div class="icon">📄</div>
+            <div class="info">
+                <span class="filename">家庭守则.txt</span>
+                <span class="meta">最后更新: 2026-07-20</span>
+            </div>
+        </a>
+        
+        <!-- 复制上面的 <a> 标签来添加更多笔记 -->
+    </div>
+
+    <!-- 文件区域 -->
+    <h2 class="section-title">📂 常用文件</h2>
+    <div class="grid">
+        <!-- 示例项目3：PDF -->
+        <a href="./files/manual.pdf" class="card pdf" download>
+            <div class="icon">📕
+            <div class="info">
+                <span class="filename">电器说明书.pdf</span>
+                <span class="meta">大小: 2.5 MB</span>
+            </div>
+        </a>
+
+        <!-- 示例项目4：图片 -->
+        <a href="./files/photo.jpg" class="card img" target="_blank">
+            <div class="icon">🖼️</div>
+            <div class="info">
+                <span class="filename">全家福.jpg</span>
+                <span class="meta">大小: 4.1 MB</span>
+            </div>
+        </a>
+
+        <!-- 示例项目5：压缩包 -->
+        <a href="./files/backup.zip" class="card zip" download>
+            <div class="icon">📦
+            <div class="info">
+                <span class="filename">照片备份.zip</span>
+                <span class="meta">大小: 150 MB</span>
+            </div>
+        </a>
+    </div>
+
+    <footer>
+        <p>Powered by GitHub Pages · 仅供家庭内部使用</p>
+    </footer>
+</div>
+
+<script>
+    // 简单的交互：点击卡片时添加轻微的反馈效果（可选）
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', function() {
+            this.style.opacity = '0.7';
+            setTimeout(() => {
+                this.style.opacity = '1';
+            }, 200);
+        });
+    });
+</script>
+
+</body>
+</html>
