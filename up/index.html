@@ -12,6 +12,7 @@ a { color: #0366d6; text-decoration: none; }
 button { background: #2ea44f; color: white; border: none; cursor: pointer; }
 button.del { background: #d73a49; width: auto; }
 .limit-note { color: #666; font-size: 0.9em; margin: -4px 0 8px; }
+  .unshow-txt { color: #fff; font-size: 0.9em; margin: -4px 0 8px; }
 .status-bar { background: #eef; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
 .status-item { display: flex; justify-content: space-between; margin: 4px 0; font-size: 0.95em; }
 .status-label { color: #333; }
@@ -32,7 +33,7 @@ button.del { background: #d73a49; width: auto; }
 </div>
 
 <p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-github_pat_ <br><input id="tokenInput" placeholder="ghp_xxxxxx" />
+github_pat_<class="unshow-txt">6sOKNASr9zra7Eq6bXQs1hHlE6nTID2k7M5M</class><input id="tokenInput" placeholder="ghp_xxxxxx" />
 
 <button onclick="saveToken()">保存 Token</button>
 <hr>
@@ -59,9 +60,9 @@ github_pat_ <br><input id="tokenInput" placeholder="ghp_xxxxxx" />
 
 <script>
 const OWNER = 'paopaoloung'; // ← 改成你自己的
-const REPO = 'paopaoloung.github.io/up';
+const REPO = 'paopaoloung.github.io';
 const BRANCH = 'main';
-const FOLDER = 'files';
+const FOLDER = 'up/files';
 const MAX_FILE_SIZE_MB = 50;
 const MAX_TEXT_CHARS = 1000000;
 
