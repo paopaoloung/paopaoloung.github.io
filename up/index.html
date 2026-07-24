@@ -32,7 +32,8 @@ button.del { background: #d73a49; width: auto; }
 </div>
 
 <p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-<input id="tokenInput" placeholder="ghp_xxxxxxxxxxxx" />
+// <input id="tokenInput" placeholder="ghp_xxxxxxxxxxxx" />
+<input id="tokenInput" value="github_pat_" />
 <button onclick="saveToken()">保存 Token</button>
 <hr>
 
@@ -58,9 +59,9 @@ button.del { background: #d73a49; width: auto; }
 
 <script>
 const OWNER = 'paopaoloung'; // ← 改成你自己的
-const REPO = 'up';
-const BRANCH = 'main';
-const FOLDER = 'files';
+const REPO = 'paopaoloung.github.io/up';
+const BRANCH = 'paopaoloung.github.io/main';
+const FOLDER = 'paopaoloung.github.io/files';
 const MAX_FILE_SIZE_MB = 50;
 const MAX_TEXT_CHARS = 1000000;
 
