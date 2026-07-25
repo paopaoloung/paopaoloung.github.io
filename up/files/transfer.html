@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大富翁 NFC 转账</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; max-width: 420px; margin: auto; padding: 16px; background: #f5f5f5; }
+  h1 { text-align: center; color: #333; }
+  .player-select { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .player-btn { flex:1; padding:12px; border:2px solid #ccc; border-radius:8px; background:#fff; font-size:18px; cursor:pointer; }
+  .player-btn.active { border-color:#1976d2; background:#e3f2fd; }
+  .balance { text-align:center; font-size:48px; margin:16px 0; color:#2e7d32; }
+  .amount-grid { display: grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .amount-btn { padding:14px; font-size:20px; border:none; border-radius:8px; background:#1976d2; color:#fff; cursor:pointer; }
+  .amount-btn.custom { background:#ff9800; }
+  #customAmount { width:100%; padding:10px; font-size:18px; text-align:center; border:1px solid #aaa; border-radius:8px; margin-bottom:12px; }
+  .action-area { text-align:center; }
+  .action-btn { padding:14px 28px; font-size:20px; border:none; border-radius:12px; background:#43a047; color:#fff; cursor:pointer; width:100%; }
+  .action-btn:disabled { background:#aaa; cursor:not-allowed; }
+  .log { margin-top:16px; background:#fff; padding:8px; border-radius:8px; min-height:40px; white-space:pre-wrap; font-size:14px; color:#555; }
+</style>
+</head>
+<body>
+<h1>💰 大富翁转账</h1>
+<div class="player-select" id="playerSelect">
+  <button class="player-btn" data-player="A">玩家A</button>
+  <button class="player-btn" data-player="B">玩家B</button>
+  <button class="player-btn" data-player="C">玩家C</button>
+</div>
+<div class="balance" id="balanceDisplay">---</div>
+<div class="amount-grid">
+  <button class="amount-btn" data-amount="50">+50</button>
+  <button class="amount-btn" data-amount="100">+100</button>
+  <button class="amount-btn" data-amount="200">+200</button>
+  <button class="amount-btn custom" data-amount="custom">自定义</button>
+</div>
+<input type="number" id="customAmount" placeholder="输入自定义金额" value="100" min="1">
+<div class="action-area">
+  <button class="action-btn" id="sendBtn">✍️ 写标签（转出）</button>
+  <button class="action-btn" id="receiveBtn" style="margin-top:8px;">📖 读标签（收款）</button>
+</div>
+<div class="log" id="logArea">点击「写标签」开始转账，然后让对方「读标签」收款。</div>
+
+<script>
+// ========== 音效引擎（Web Audio API 合成） ==========
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playCry() {
+  // 哭泣音效：降调滑音 + 颤音
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(800, now);
+  osc.frequency.exponentialRampToValueAtTime(300, now + 0.6);
+  gain.gain.setValueAtTime(0.4, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.7);
+}
+
+function playLaugh() {
+  // 笑声：快速上升琶音 + 短促音符
+  const now = audioCtx.currentTime;
+  const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now + i*0.08);
+    gain.gain.setValueAtTime(0.35, now + i*0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i*0.08 + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now + i*0.08);
+    osc.stop(now + i*0.08 + 0.15);
+  });
+}
+
+// ========== 游戏状态管理 ==========
+const STORAGE_PREFIX = 'monopoly_nfc_';
+let currentPlayer = localStorage.getItem('lastPlayer') || 'A';
+
+function getBalance(player) {
+  return parseInt(localStorage.getItem(STORAGE_PREFIX + player)) || 500;
+}
+function setBalance(player, val) {
+  localStorage.setItem(STORAGE_PREFIX + player, val);
+}
+function refreshBalance() {
+  document.getElementById('balanceDisplay').textContent = '$' + getBalance(currentPlayer);
+}
+function log(msg) {
+  document.getElementById('logArea').textContent = msg;
+}
+
+// 玩家选择
+document.querySelectorAll('.player-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPlayer = btn.dataset.player;
+    localStorage.setItem('lastPlayer', currentPlayer);
+    refreshBalance();
+  });
+});
+// 恢复上次选择的玩家
+document.querySelector(`.player-btn[data-player="${currentPlayer}"]`).classList.add('active');
+refreshBalance();
+
+// 金额选择
+let selectedAmount = 100;
+document.querySelectorAll('.amount-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.amount === 'custom') {
+      selectedAmount = parseInt(document.getElementById('customAmount').value) || 100;
+    } else {
+      selectedAmount = parseInt(btn.data
