@@ -160,7 +160,9 @@ async function refreshList() {
       container.innerHTML = '<div>暂无文件</div>';
       return;
     }
-    container.innerHTML = '';
+
+
+  /*  container.innerHTML = '';
     for (const file of files) {
       const div = document.createElement('div');
       const link = document.createElement('a');
@@ -178,7 +180,52 @@ async function refreshList() {
       div.appendChild(link);
       div.appendChild(delBtn);
       container.appendChild(div);
-    }
+    }  */
+
+    for (const file of files) {
+  const div = document.createElement('div');
+
+  // 左側：檔名連結（保留你原本的）
+  const link = document.createElement('a');
+  link.href = file.download_url;
+  link.target = '_blank';
+  link.textContent = file.name;
+
+  // 右側：按鈕區
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
+
+  // 新增：下載按鈕（同樣指向 download_url）
+  const dlBtn = document.createElement('a');
+  dlBtn.href = file.download_url;
+  dlBtn.setAttribute('download', file.name); // 讓瀏覽器以下載方式處理（同網域/同源時更穩）
+  dlBtn.textContent = '下載';
+  dlBtn.style.background = '#0969da';
+  dlBtn.style.color = '#fff';
+  dlBtn.style.padding = '6px 10px';
+  dlBtn.style.borderRadius = '6px';
+  dlBtn.style.fontSize = '14px';
+  dlBtn.style.display = 'inline-block';
+
+  // 刪除按鈕（沿用你原本）
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del';
+  delBtn.textContent = '删除';
+  delBtn.onclick = async () => {
+    if (!confirm('确定删除?')) return;
+    await deleteFile(file.path, file.sha);
+    refreshList();
+  };
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(delBtn);
+
+  div.appendChild(link);
+  div.appendChild(actions);
+  container.appendChild(div);
+}
+    
   } catch(e) {
     container.innerHTML = `<div style="color:red">错误: ${e.message}</div>`;
   }
