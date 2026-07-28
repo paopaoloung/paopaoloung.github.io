@@ -1,221 +1,331 @@
-
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭共享空间</title>
-    <style>
-        :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f5f7fa;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-sub: #666666;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --radius: 12px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.6;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-top: 20px;
-        }
-
-        h1 {
-            font-size: 2rem;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        p.subtitle {
-            color: var(--text-sub);
-            font-size: 0.95rem;
-        }
-
-        .section-title {
-            font-size: 1.2rem;
-            margin: 30px 0 15px;
-            padding-left: 10px;
-            border-left: 4px solid var(--primary-color);
-            color: var(--text-main);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: var(--shadow);
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: center;
-            border: 1px solid transparent;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
-            border-color: var(--primary-color);
-        }
-
-        .icon {
-            width: 48px;
-            height: 48px;
-            background-color: #eef4fc;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 24px;
-            color: var(--primary-color);
-            flex-shrink: 0;
-        }
-
-        .info {
-            flex: 1;
-        }
-
-        .filename {
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 4px;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .meta {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-        }
-
-        /* 针对不同文件类型的图标颜色微调 */
-        .card.txt .icon { background-color: #fff3e0; color: #ff9800; }
-        .card.pdf .icon { background-color: #ffebee; color: #f44336; }
-        .card.img .icon { background-color: #e8f5e9; color: #4caf50; }
-        .card.zip .icon { background-color: #f3e5f5; color: #9c27b0; }
-
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            color: #999;
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 600px) {
-            h1 { font-size: 1.5rem; }
-            .grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>临时文件同步</title>
+<style>
+body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 16px; }
+input, textarea, button { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; }
+#fileList div { background: #f5f5f5; margin: 4px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
+a { color: #0366d6; text-decoration: none; }
+button { background: #2ea44f; color: white; border: none; cursor: pointer; }
+button.del { background: #d73a49; width: auto; }
+.limit-note { color: #666; font-size: 0.9em; margin: -4px 0 8px; }
+  .unshow-txt { color: #fff; font-size: 0.9em; margin: -4px 0 8px; }
+.status-bar { background: #eef; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+.status-item { display: flex; justify-content: space-between; margin: 4px 0; font-size: 0.95em; }
+.status-label { color: #333; }
+.status-value { font-weight: bold; }
+.warning { color: #c0392b; }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>🏠 家庭共享空间</h1>
-        <p class="subtitle">手机电脑随时访问 · 点击即可下载查看</p>
-    </header>
+  
+<h2>📁 临时文件同步 6sKa7Eqs1hHnk5McmX</h2>
 
-    <!-- 笔记区域 -->
-    <h2 class="section-title">📝 最新笔记 (TXT)</h2>
-    <div class="grid">
-        <!-- 示例项目1：请修改 href 为实际文件名 -->
-        <a href="./txt/temp.txt" class="card txt" target="_blank">
-            <div class="icon">📄</div>
-            <div class="info">
-                <span class="filename">购物清单.txt</span>
-                <span class="meta">最后更新: 2026-07-24</span>
-            </div>
-        </a>
-
-        <!-- 示例项目2 -->
-        <a href="./notes/family_rules.txt" class="card txt" target="_blank">
-            <div class="icon">📄</div>
-            <div class="info">
-                <span class="filename">家庭守则.txt</span>
-                <span class="meta">最后更新: 2026-07-20</span>
-            </div>
-        </a>
-        
-        <!-- 复制上面的 <a> 标签来添加更多笔记 -->
-    </div>
-
-    <!-- 文件区域 -->
-    <h2 class="section-title">📂 常用文件</h2>
-    <div class="grid">
-        <!-- 示例项目3：PDF -->
-        <a href="./files/manual.pdf" class="card pdf" download>
-            <div class="icon">📕
-            <div class="info">
-                <span class="filename">电器说明书.pdf</span>
-                <span class="meta">大小: 2.5 MB</span>
-            </div>
-        </a>
-
-        <!-- 示例项目4：图片 -->
-        <a href="./files/photo.jpg" class="card img" target="_blank">
-            <div class="icon">🖼️</div>
-            <div class="info">
-                <span class="filename">全家福.jpg</span>
-                <span class="meta">大小: 4.1 MB</span>
-            </div>
-        </a>
-
-        <!-- 示例项目5：压缩包 -->
-        <a href="./files/backup.zip" class="card zip" download>
-            <div class="icon">📦
-            <div class="info">
-                <span class="filename">照片备份.zip</span>
-                <span class="meta">大小: 150 MB</span>
-            </div>
-        </a>
-    </div>
-
-    <footer>
-        <p>Powered by GitHub Pages · 仅供家庭内部使用</p>
-    </footer>
+<!-- 状态栏 -->
+<div class="status-bar" id="statusBar">
+  <div class="status-item"><span class="status-label">仓库已用大小</span><span class="status-value" id="repoSize">-</span></div>
+  <div class="status-item"><span class="status-label">GitHub Pages 限制</span><span class="status-value">源仓库 ≤ 1GB，站点 ≤ 1GB，带宽 ≤ 100GB/月</span></div>
+  <div class="status-item"><span class="status-label">今日 API 已用</span><span class="status-value" id="apiUsed">-</span></div>
+  <div class="status-item"><span class="status-label">今日 API 剩余</span><span class="status-value" id="apiRemaining">-</span></div>
+  <div class="status-item"><span class="status-label">重置时间</span><span class="status-value" id="apiReset">-</span></div>
 </div>
 
-<script>
-    // 简单的交互：点击卡片时添加轻微的反馈效果（可选）
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', function() {
-            this.style.opacity = '0.7';
-            setTimeout(() => {
-                this.style.opacity = '1';
-            }, 200);
-        });
-    });
-</script>
+<p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
+<p class="limit-note">11A7UNAAA0zdZ9cMsOJ3Go_ivWAPdXK3BuSy98k4hQu2650DoTcZ4a3hyMuVyzf3RQJK3HSHGADF9tSxLu</p>
+<input id="tokenInput" placeholder="ghp_xxxxxx" value="github_pat_" />
+<button onclick="saveToken()">保存 Token</button>
+<p class="unshow-txt">github_pat_11A7UNAAA0FGIK2IoL0whp_7vQ5yesvxuVas8F926KGfTg0OzqosG90ddtr6lXVjMa4OGJFKFFm2Y3G</p>
+  <hr>
 
+<h3>📝 保存txt文本</h3>
+<input id="textName" placeholder="文件名（如 note.txt）" value="0tmp.txt" />
+<textarea id="textContent" rows="4" placeholder="输入文本内容"></textarea>
+<p class="limit-note">txt内容建议不超过 1MB（约 100 万字符）</p>
+<button onclick="saveText()">保存文本</button>
+
+<h3>🖼️ 上传文件（图片、PDF等）</h3>
+<p class="limit-note">文件大小限制：50MB（超过75MB将无法上传）</p>
+<input type="file" id="fileInput" />
+<button onclick="uploadFile()">上传文件</button>
+
+<h3>📄 已有文件列表</h3>
+<div id="fileList">加载中...</div>
+
+
+
+
+
+
+
+<script>
+const OWNER = 'paopaoloung'; // ← 改成你自己的
+const REPO = 'paopaoloung.github.io';
+const BRANCH = 'main';
+const FOLDER = 'up/files';
+const MAX_FILE_SIZE_MB = 50;
+const MAX_TEXT_CHARS = 1000000;
+
+// ---------- 工具函数 ----------
+function getToken() {
+  return document.getElementById('tokenInput').value || localStorage.getItem('gh_token') || '';
+}
+
+function saveToken() {
+  const t = document.getElementById('tokenInput').value;
+  if(t) localStorage.setItem('gh_token', t);
+  alert('Token 已保存');
+}
+
+// ---------- API 调用封装（自动更新速率限制显示）----------
+let lastRateLimit = { limit: 5000, remaining: 5000, reset: 0 };
+
+function updateRateDisplay(headers) {
+  if (!headers) return;
+  const limit = parseInt(headers.get('X-RateLimit-Limit'));
+  const remaining = parseInt(headers.get('X-RateLimit-Remaining'));
+  const reset = parseInt(headers.get('X-RateLimit-Reset'));
+  if (!isNaN(limit) && !isNaN(remaining) && !isNaN(reset)) {
+    lastRateLimit = { limit, remaining, reset };
+    const used = limit - remaining;
+    document.getElementById('apiUsed').textContent = used;
+    document.getElementById('apiRemaining').textContent = remaining;
+    const resetDate = new Date(reset * 1000);
+    document.getElementById('apiReset').textContent = resetDate.toLocaleTimeString() + ' (' + resetDate.toLocaleDateString() + ')';
+  }
+}
+
+async function apiCall(method, path, body) {
+  const token = getToken();
+  if(!token) throw new Error('请先输入 Token');
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`;
+  const options = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    }
+  };
+  if(body) options.body = JSON.stringify(body);
+  const res = await fetch(url, options);
+  // 更新速率限制显示
+  updateRateDisplay(res.headers);
+  if (!res.ok && res.status !== 404) {
+    const err = await res.json();
+    throw new Error(err.message || 'API error');
+  }
+  return res;
+}
+
+// ---------- 获取仓库大小 ----------
+async function fetchRepoSize() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const url = `https://api.github.com/repos/${OWNER}/${REPO}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    updateRateDisplay(res.headers);
+    if (!res.ok) return;
+    const data = await res.json();
+    // size 单位 KB
+    const sizeKB = data.size;
+    const sizeMB = (sizeKB / 1024).toFixed(2);
+    document.getElementById('repoSize').textContent = sizeMB + ' MB';
+  } catch(e) {
+    console.error('获取仓库大小失败', e);
+  }
+}
+
+// ---------- 文件列表操作 ----------
+async function listFiles() {
+  const res = await apiCall('GET', FOLDER);
+  if (res.status === 404) return [];
+  const data = await res.json();
+  if (!Array.isArray(data)) return [data];
+  return data.filter(item => item.type === 'file');
+}
+
+async function refreshList() {
+  const container = document.getElementById('fileList');
+  container.innerHTML = '加载中...';
+  try {
+    const files = await listFiles();
+    if (files.length === 0) {
+      container.innerHTML = '<div>暂无文件</div>';
+      return;
+    }
+
+
+  /*  container.innerHTML = '';
+    for (const file of files) {
+      const div = document.createElement('div');
+      const link = document.createElement('a');
+      link.href = file.download_url;
+      link.target = '_blank';
+      link.textContent = file.name;
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del';
+      delBtn.textContent = '删除';
+      delBtn.onclick = async () => {
+        if (!confirm('确定删除?')) return;
+        await deleteFile(file.path, file.sha);
+        refreshList();
+      };
+      div.appendChild(link);
+      div.appendChild(delBtn);
+      container.appendChild(div);
+    }  */
+
+    for (const file of files) {
+  const div = document.createElement('div');
+
+  // 左側：檔名連結（保留你原本的）
+  const link = document.createElement('a');
+  link.href = file.download_url;
+  link.target = '_blank';
+  link.textContent = file.name;
+
+  // 右側：按鈕區
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
+
+  // 新增：下載按鈕（同樣指向 download_url）
+  const dlBtn = document.createElement('a');
+  dlBtn.href = file.download_url;
+  dlBtn.setAttribute('download', file.name); // 讓瀏覽器以下載方式處理（同網域/同源時更穩）
+  dlBtn.textContent = '下載';
+  dlBtn.style.background = '#0969da';
+  dlBtn.style.color = '#fff';
+  dlBtn.style.padding = '6px 10px';
+  dlBtn.style.borderRadius = '6px';
+  dlBtn.style.fontSize = '14px';
+  dlBtn.style.display = 'inline-block';
+
+  // 刪除按鈕（沿用你原本）
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del';
+  delBtn.textContent = '删除';
+  delBtn.onclick = async () => {
+    if (!confirm('确定删除?')) return;
+    await deleteFile(file.path, file.sha);
+    refreshList();
+  };
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(delBtn);
+
+  div.appendChild(link);
+  div.appendChild(actions);
+  container.appendChild(div);
+}
+    
+  } catch(e) {
+    container.innerHTML = `<div style="color:red">错误: ${e.message}</div>`;
+  }
+}
+
+// ---------- 保存文本 ----------
+async function saveText() {
+  const name = document.getElementById('textName').value.trim();
+  const content = document.getElementById('textContent').value;
+  if (!name || !content) return alert('文件名和内容不能为空');
+  if (content.length > MAX_TEXT_CHARS) {
+    alert(`文本过长！请控制在 ${MAX_TEXT_CHARS.toLocaleString()} 字符以内（当前 ${content.length.toLocaleString()} 字符）`);
+    return;
+  }
+  const path = `${FOLDER}/${name}`;
+  const encoded = btoa(unescape(encodeURIComponent(content)));
+  try {
+    let sha = null;
+    const checkRes = await apiCall('GET', path);
+    if (checkRes.status === 200) {
+      const data = await checkRes.json();
+      sha = data.sha;
+    }
+    const body = {
+      message: `Update ${name}`,
+      content: encoded,
+      branch: BRANCH,
+      sha: sha
+    };
+    await apiCall('PUT', path, body);
+    // alert('保存成功');
+    document.getElementById('textName').value = '';
+    document.getElementById('textContent').value = '';
+    refreshList();
+    fetchRepoSize(); // 更新仓库大小
+  } catch(e) {
+    alert('保存失败: ' + e.message);
+  }
+}
+
+// ---------- 上传文件 ----------
+async function uploadFile() {
+  const fileInput = document.getElementById('fileInput');
+  const file = fileInput.files[0];
+  if (!file) return alert('请选择文件');
+
+  const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
+  if (file.size > maxBytes) {
+    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前文件约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const base64 = e.target.result.split(',')[1];
+    const path = `${FOLDER}/${file.name}`;
+    try {
+      let sha = null;
+      const checkRes = await apiCall('GET', path);
+      if (checkRes.status === 200) {
+        const data = await checkRes.json();
+        sha = data.sha;
+      }
+      const body = {
+        message: `Upload ${file.name}`,
+        content: base64,
+        branch: BRANCH,
+        sha: sha
+      };
+      await apiCall('PUT', path, body);
+      alert('上传成功');
+      fileInput.value = '';
+      refreshList();
+      fetchRepoSize();
+    } catch(err) {
+      alert('上传失败: ' + err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ---------- 删除文件 ----------
+async function deleteFile(path, sha) {
+  const body = { message: `Delete ${path}`, sha, branch: BRANCH };
+  await apiCall('DELETE', path, body);
+  fetchRepoSize(); // 删除后更新仓库大小
+}
+
+// ---------- 初始化 ----------
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('gh_token');
+  if(saved) document.getElementById('tokenInput').value = saved;
+  // 初始显示速率限制（如果没有API调用则显示默认值）
+  document.getElementById('apiUsed').textContent = '0';
+  document.getElementById('apiRemaining').textContent = '5000';
+  document.getElementById('apiReset').textContent = '待首次请求后更新';
+  // 获取仓库大小
+  fetchRepoSize();
+  refreshList();
+});
+</script>
 </body>
 </html>
