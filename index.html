@@ -1,106 +1,15 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>金幣多多 - 爆量版</title>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #1a1a1a;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-        .gold-btn {
-            padding: 25px 50px;
-            font-size: 32px;
-            font-weight: bold;
-            color: #fff;
-            background: linear-gradient(45deg, #ffcc00, #ff6600, #ffcc00);
-            background-size: 200% auto;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 15px 30px rgba(255, 102, 0, 0.5);
-            transition: transform 0.1s, box-shadow 0.1s;
-            user-select: none;
-            animation: shine 3s linear infinite;
-        }
-        .gold-btn:active {
-            transform: scale(0.93);
-            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
-        }
-        @keyframes shine {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-    </style>
-</head>
-<body>
+<h1 class="gold-text">璀璨奢華 尊榮體驗</h1>
 
-    <!-- 按鈕本體 -->
-    <button class="gold-btn" onclick="playMassiveCoins()">💰 金幣多多2 💰</button>
-
-    <!-- 主音效：大量金幣灑落、大獎倒出聲 (託管於 cdnjs 開源伺服器，速度極快且穩定) -->
-    <audio id="jackpot-sound" src="https://cloudflare.com" style="display:none;"></audio>
-    <!-- 備用音效網址：大量金幣碰撞聲 -->
-    <audio id="heavy-coins" src="https://google.com" style="display:none;"></audio>
-
-    <script>
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
-
-        // 測試用：使用維基百科另一個成堆金幣落下的音效網址
-        const coinShowerUrl = "https://wikimedia.org";
-        const fallbackAudio = new Audio(coinShowerUrl);
-
-        function playMassiveCoins() {
-            // 嘗試播放實體成堆金幣檔案
-            fallbackAudio.currentTime = 0;
-            fallbackAudio.play().catch(error => {
-                console.log("網路載入稍慢，啟動本地即時合成爆量金幣聲！");
-                playSyntheticShower();
-            });
-        }
-
-        // 💡 100% 創立的保底機制：晶片模擬「20枚金幣同時瘋狂爆發灑落」的聲音
-        function playSyntheticShower() {
-            if (!audioCtx) audioCtx = new AudioContext();
-            const now = audioCtx.currentTime;
-
-            // 迴圈瞬間產生 20 個隨機微小延遲的金幣音軌，組合成「嘩啦嘩啦」的大量感
-            for (let i = 0; i < 20; i++) {
-                const coinDelay = i * 0.03 + (Math.random() * 0.05); // 密集交錯掉落
-                const duration = 0.3 + Math.random() * 0.3; // 每枚金幣響尾長度不一
-                
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.type = 'sine';
-                
-                // 隨機高頻，模擬不同大小硬幣的清脆撞擊聲 (在 900Hz 到 1600Hz 之間)
-                const baseFreq = 900 + Math.random() * 700;
-                osc.frequency.setValueAtTime(baseFreq, now + coinDelay);
-                osc.frequency.setValueAtTime(baseFreq * 1.3, now + coinDelay + 0.05);
-                
-                // 音量隨機分散，做出層次感
-                const volume = 0.05 + Math.random() * 0.08;
-                gain.gain.setValueAtTime(volume, now + coinDelay);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + coinDelay + duration);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.start(now + coinDelay);
-                osc.stop(now + coinDelay + duration);
-            }
-        }
-    </script>
-
-</body>
-</html>
+<style>
+.gold-text {
+    font-size: 48px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    /* 以下是將漸層套套用在文字的核心語法 */
+    background: linear-gradient(45deg, #ffd700, #ffa500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* 加上微弱的文字陰影增加立體感 */
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
+}
+</style>
