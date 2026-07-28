@@ -1,15 +1,47 @@
-<h1 class="gold-text">璀璨奢華 尊榮體驗</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Text Demo</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        /* Your original styles completely untouched */
+        .gold-btn {
+            padding: 20px 40px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #ffd700, #ffa500);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+            
+            /* Added strictly to make text behave like a block/button element layout-wise */
+            display: inline-block;
+            text-decoration: none;
+        }
+        .gold-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(255, 215, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
 
-<style>
-.gold-text {
-    font-size: 48px;
-    font-weight: bold;
-    font-family: Arial, sans-serif;
-    /* 以下是將漸層套套用在文字的核心語法 */
-    background: linear-gradient(45deg, #ffd700, #ffa500);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    /* 加上微弱的文字陰影增加立體感 */
-    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
-}
-</style>
+    <!-- Used as an inline text element instead of a button tag -->
+    <span class="gold-btn">璀璨奢華</span>
+
+</body>
+</html>
