@@ -4,45 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Text Demo</title>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #1a1a1a;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-        /* Your original styles completely untouched */
-        .gold-btn {
-            padding: 20px 40px;
-            font-size: 28px;
-            font-weight: bold;
-            color: #fff;
-            background: linear-gradient(45deg, #ffd700, #ffa500);
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4);
-            transition: transform 0.1s, box-shadow 0.1s;
-            
-            /* Added strictly to make text behave like a block/button element layout-wise */
-            display: inline-block;
-            text-decoration: none;
-        }
-        .gold-btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 5px 10px rgba(255, 215, 0, 0.2);
-        }
-    </style>
 </head>
-<body>
+<body style="margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a1a; font-family: Arial, sans-serif; overflow: hidden;">
 
-    <!-- Used as an inline text element instead of a button tag -->
-    <span class="gold-btn">璀璨奢華</span>
+    <span style="padding: 20px 40px; font-size: 28px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #ffd700, #ffa500); border-radius: 50px; cursor: pointer; box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4); transition: transform 0.1s, box-shadow 0.1s; display: inline-block;" 
+          onmousedown="this.style.transform='scale(0.95)'; this.style.box-shadow='0 5px 10px rgba(255,215,0,0.2)';" 
+          onmouseup="this.style.transform='none'; this.style.box-shadow='0 10px 20px rgba(255,215,0,0.4)';"
+          onmouseleave="this.style.transform='none'; this.style.box-shadow='0 10px 20px rgba(255,215,0,0.4)';">
+        璀璨奢華
+    </span>
 
 </body>
 </html>
-在效果不變前提下，請簡化以上代碼
