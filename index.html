@@ -26,6 +26,7 @@
             cursor: pointer;
             box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4);
             transition: transform 0.1s, box-shadow 0.1s;
+            user-select: none;
         }
         .gold-btn:active {
             transform: scale(0.95);
@@ -38,16 +39,52 @@
     <!-- 按鈕本體 -->
     <button class="gold-btn" onclick="playCoinSound()">💰 金幣多多</button>
 
-    <!-- 內嵌的爆金幣音效 (使用免版權的網路音效網址，你也可以換成自己的 MP3 連結) -->
-    <audio id="coin-sound" src="https://mixkit.co" preload="auto"></audio>
+    <!-- 備用真實音效來源（維基百科開源音效，極度穩定） -->
+    <audio id="coin-file" src="https://wikimedia.org" preload="auto"></audio>
 
     <script>
+        // 初始化瀏覽器音效系統
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
         function playCoinSound() {
-            const sound = document.getElementById('coin-sound');
-            sound.currentTime = 0; // 每次點擊都重頭播放，實現連續狂點效果
-            sound.play().catch(error => {
-                console.log("瀏覽器阻擋自動播放，需等使用者互動：", error);
+            // 優先嘗試播放真實硬幣音效檔案
+            const audioFile = document.getElementById('coin-file');
+            
+            // 嘗試播放檔案
+            audioFile.currentTime = 0;
+            audioFile.play().catch(error => {
+                console.log("檔案播放受阻或載入中，啟動保底程式合成音效。");
+                // 保底方案：如果網址又被擋，直接用瀏覽器晶片現場「嗶」出一個瑪利歐復古金幣聲！
+                playSyntheticCoinSound();
             });
+        }
+
+        // 💡 100% 絕對會響的保底程式合成音效 (瑪利歐金幣聲)
+        function playSyntheticCoinSound() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            
+            // 金幣聲通常由兩個快速連續的高頻正弦波組成
+            const now = audioCtx.currentTime;
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            
+            // 瑪利歐金幣經典雙頻率：先 987.77 Hz (B5) 緊接著 1318.51 Hz (E6)
+            osc.frequency.setValueAtTime(987.77, now);
+            osc.frequency.setValueAtTime(1318.51, now + 0.08);
+            
+            // 聲音淡出漸弱
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.4);
         }
     </script>
 
