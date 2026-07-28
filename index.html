@@ -1,18 +1,209 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gold Text Demo</title>
+    <title>paopaoloung</title>
+    <style>
+        /* 全域樣式美化 */
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #4a90e2;
+            --hover-color: #357abd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        /* 大標題樣式 */
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            color: #2c3e50;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* 按鈕容器（RWD 響應式網格） */
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* 按鈕主體與美化 */
+        .app-btn {
+            display: block;
+            background-color: var(--card-bg);
+            color: var(--primary-color);
+            text-align: center;
+            padding: 18px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        /* 電腦端滑鼠懸停效果 */
+        @media (hover: hover) {
+            .app-btn:hover {
+                background-color: var(--primary-color);
+                color: #ffffff;
+                transform: translateY(-3px);
+                box-shadow: 0 6px 12px rgba(74, 144, 226, 0.3);
+            }
+        }
+
+        /* 提示文字 (Tooltip) 樣式 */
+        .app-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: normal;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        /* 箭頭樣式 */
+        .app-btn::before {
+            content: "";
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        /* 顯示提示 (滑鼠指向時) */
+        @media (hover: hover) {
+            .app-btn:hover::after, .app-btn:hover::before {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) scale(1);
+            }
+            .app-btn:hover::before {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* 載入中動畫 */
+        .loading {
+            font-size: 1.2rem;
+            color: #888;
+            margin-top: 50px;
+        }
+
+        /* 手機端微調 */
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2rem;
+                margin-bottom: 30px;
+            }
+            .app-btn {
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+            /* 手機端不顯示Tooltip，避免阻擋點擊操作 */
+            .app-btn::after, .app-btn::before {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
-<body style="margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a1a; font-family: Arial, sans-serif; overflow: hidden;">
+<body>
 
-    <span style="padding: 20px 40px; font-size: 28px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #ffd700, #ffa500); border-radius: 50px; cursor: pointer; box-shadow: 0 10px 20px rgba(255, 215, 0, 0.4); transition: transform 0.1s, box-shadow 0.1s; display: inline-block;" 
-          onmousedown="this.style.transform='scale(0.95)'; this.style.box-shadow='0 5px 10px rgba(255,215,0,0.2)';" 
-          onmouseup="this.style.transform='none'; this.style.box-shadow='0 10px 20px rgba(255,215,0,0.4)';"
-          onmouseleave="this.style.transform='none'; this.style.box-shadow='0 10px 20px rgba(255,215,0,0.4)';">
-        璀璨奢華
-    </span>
+    <!-- 大標題 -->
+    <h1 class="title">paopaoloung</h1>
 
+    <!-- 狀態提示（加載中） -->
+    <div id="loading" class="loading">正在同步 Excel 資料...</div>
+
+    <!-- 按鈕容器 -->
+    <div class="button-container" id="btnContainer"></div>
+
+    <script>
+        // ⚠️ 請在此處替換成您部署好的 Google Apps Script 網網址
+        const gasUrl = "https://script.google.com/macros/s/AKfycbxrWc19jPxNDz4k7BPDVok7rHNSPmKCq8jK__3CTwtt-C2NpPhb3FbKnUk50rUP66Ox/exec";
+
+        async function fetchButtons() {
+            const container = document.getElementById('btnContainer');
+            const loadingText = document.getElementById('loading');
+
+            try {
+                // 向 GAS 發送請求獲取資料
+                const response = await fetch(gasUrl);
+                const data = await response.json();
+
+                // 隱藏載入提示
+                loadingText.style.display = 'none';
+
+                // 巡迴資料並動態建立按鈕
+                data.forEach(item => {
+                    const btn = document.createElement('a');
+                    btn.href = item.url;
+                    btn.target = "_blank"; // 在新分頁開啟網址
+                    btn.className = 'app-btn';
+                    btn.innerText = item.name;
+                    
+                    // 設定 B 欄內容為滑鼠提示 (Tooltip)
+                    btn.setAttribute('data-tooltip', item.url);
+
+                    container.appendChild(btn);
+                });
+
+            } catch (error) {
+                console.error("資料讀取失敗：", error);
+                loadingText.innerText = "無法載入資料，請確認 GAS API 權限設定是否為『所有人』。";
+            }
+        }
+
+        // 網頁載入完成後自動執行
+        window.onload = fetchButtons;
+    </script>
 </body>
 </html>
