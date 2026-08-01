@@ -50,7 +50,7 @@
         .btn-num:active { background-color: #bdbdbd; }
         .btn-clear { background-color: #9e9e9e; color: white; } /* 清除鍵額外明顯 */
 
-        /* 玩家切換選單樣式 */
+        /* 切換選單樣式 */
         .player-selector { margin-bottom: 15px; padding: 5px; font-size: 14px; width: 100%; }
 
         /* 彈出視窗樣式 */
@@ -64,10 +64,10 @@
 <div class="container">
     <!-- 快捷切換身份選單 -->
     <select class="player-selector" id="player-select" onchange="switchPlayer(this.value)">
-        <option value="1">玩家 1：燈龍魚</option>
-        <option value="2">玩家 2：小毛蟲</option>
-        <option value="3">玩家 3：BB軒</option>
-        <option value="4">玩家 4：玩家4</option>
+        <option value="1"> 1：燈龍魚</option>
+        <option value="2"> 2：小毛蟲</option>
+        <option value="3"> 3：BB 軒</option>
+        <option value="4"> 4：大白鯊</option>
     </select>
 
     <!-- (文字1) 資產顯示 -->
@@ -254,7 +254,7 @@ ndef.onreading = async (event) => {
         const gasUrl = "https://script.google.com/macros/s/AKfycbzpIw0JWWqZ2nPxPouxwvk3oWjM5A9iM-LpF1FLPB5TlaqZT2To6TzJNxPzkiZ9kAfUxw/exec?action=set_pool&amount=2000000";
         
         // 💡 終極解決方案：建立一個完全透明、看不到的 <iframe> 來強制瀏覽器加載網址
-        // 這個方法等同於瀏覽器在背景幫您「打開」了那個網址，但玩家完全看不到，100% 繞過所有跨網域 (CORS) 阻擋
+        // 這個方法等同於瀏覽器在背景幫您「打開」了那個網址，但完全看不到，100% 繞過所有跨網域 (CORS) 阻擋
         let iframe = document.createElement('iframe');
         iframe.style.display = 'none'; // 隱藏起來不影響畫面
         iframe.src = gasUrl + "&t=" + new Date().getTime(); // 加上時間戳防止快取舊資料
