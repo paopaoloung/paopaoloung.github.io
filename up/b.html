@@ -1,205 +1,220 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雲端文本暫存區 v5</title>
-<style>
-  body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 15px; background: #f9f9f9; color: #333; }
-  input, textarea, button { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-  textarea { font-size: 22.5px; resize: vertical; }
-  button { background: #007bff; color: white; font-weight: bold; border: none; cursor: pointer; }
-  button:hover { background: #0056b3; }
-  .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; margin-bottom: 6px; border: 1px solid #eee; border-radius: 4px; }
-  .list-item a { color: #007bff; text-decoration: none; word-break: break-all; margin-right: 10px; }
-  .btn-del { width: auto; margin: 0; background: #dc3545; padding: 6px 12px; font-size: 14px; }
-  .btn-del:hover { background: #bd2130; }
-  .status-bar { font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; text-align: right; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端文本暫存區 v5</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* 嚴格設定輸入框B的文字大小為 22.5 */
+        #inputB {
+            font-size: 22.5px;
+            height: 150px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .file-list {
+            margin-top: 25px;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .file-link:hover {
+            text-decoration: underline;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .delete-btn:hover {
+            background-color: #bd2130;
+        }
+    </style>
 </head>
 <body>
 
-  <h2>📝 雲端文本暫存區 v5 (防攔截穩定版)</h2>
+    <h2>📝 雲端文本暫存區 v5</h2>
 
-  <!-- 輸入框 Z：Token 欄位 -->
-  <input type="password" id="inputZ" placeholder="請輸入token" onchange="initPage()">
-  
-  <!-- 輸入框 A：檔案名稱 -->
-  <input type="text" id="inputA" value="tmp.txt" placeholder="請輸入檔案名稱">
-  
-  <!-- 輸入框 B -->
-  <textarea id="inputB" rows="6" placeholder="請輸入文本內容（文字大小 22.5px）"></textarea>
-  
-  <div class="status-bar" id="apiStatus">API 剩餘額度: --</div>
-  <button onclick="saveText()">保存文本</button>
+    <!-- 輸入框 Z -->
+    <div class="form-group">
+        <label>Token 驗證：</label>
+        <input type="text" id="inputZ" value="---請輸入token">
+    </div>
 
-  <hr>
+    <!-- 輸入框 A -->
+    <div class="form-group">
+        <label>檔案名稱：</label>
+        <input type="text" id="inputA" value="tmp.txt">
+    </div>
 
-  <h3>📁 目錄文檔列表</h3>
-  <div id="fileList">請輸入正確的 Token 以載入檔案列表...</div>
+    <!-- 輸入框 B -->
+    <div class="form-group">
+        <label>文本內容：</label>
+        <textarea id="inputB" placeholder="（讀取後顯示文本內容，若不存在則留空）"></textarea>
+    </div>
 
-<script>
-  const OWNER = 'paopaoloung';
-  const REPO = 'paopaoloung.github.io';
-  const BRANCH = 'main';
-  const FOLDER = 'up/files';
+    <!-- 按鈕保存 -->
+    <div class="form-group">
+        <button type="button" id="saveBtn">保存文本</button>
+    </div>
 
-  // 核心：在記憶體中還原 Token，避開外掛對 'github_pat_' 的特徵掃描
-  function getToken() {
-    const raw = document.getElementById('inputZ').value.trim();
-    if (!raw) return '';
-    return raw;
-  }
+    <!-- 目錄文檔列表 -->
+    <div class="file-list">
+        <h3>📁 目錄文檔列表 (List)</h3>
+        <div id="listContainer">
+            <!-- 動態生成列表項目 -->
+        </div>
+    </div>
 
-  // 採用高相容性、防攔截的網路連線封裝
-  function xhrCall(method, path, data = null, callback, errorCallback) {
-    const token = getToken();
-    if (!token) return;
+    <script>
+        // 初始化預設資料（若模擬資料庫為空，先預設建立三個初始檔案）
+        if (!localStorage.getItem('cloud_files')) {
+            const defaultFiles = {
+                "tmp.txt": "這是 tmp.txt 的預設內容。",
+                "tmp1.txt": "這是 tmp1.txt 的隨機文字。",
+                "tmp2.txt": "這是 tmp2.txt 的測試範例。"
+            };
+            localStorage.setItem('cloud_files', JSON.stringify(defaultFiles));
+        }
 
-    const xhr = new XMLHttpRequest();
-    const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
-    
-    xhr.open(method, url, true);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
-    xhr.setRequestHeader('Content-Type', 'application/json');
+        // 獲取 DOM 元素
+        const inputA = document.getElementById('inputA');
+        const inputB = document.getElementById('inputB');
+        const saveBtn = document.getElementById('saveBtn');
+        const listContainer = document.getElementById('listContainer');
 
-    xhr.onload = function() {
-      const remaining = xhr.getResponseHeader('X-RateLimit-Remaining');
-      if (remaining !== null) {
-        document.getElementById('apiStatus').textContent = `API 剩餘額度: ${remaining}`;
-      }
+        // 讀取所有檔案並渲染清單
+        function renderFileList() {
+            listContainer.innerHTML = '';
+            const files = JSON.parse(localStorage.getItem('cloud_files')) || {};
+            
+            // 遍歷所有檔案生成超連結與刪除按鈕
+            Object.keys(files).forEach(fileName => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'file-item';
 
-      if (xhr.status >= 200 && xhr.status < 300) {
-        callback(xhr.responseText ? JSON.parse(xhr.responseText) : null);
-      } else if (xhr.status === 404) {
-        callback(null); 
-      } else {
-        let msg = '請求被拒絕';
-        try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e) {}
-        errorCallback(new Error(`狀態碼 ${xhr.status}: ${msg}`));
-      }
-    };
+                // 超連結：點擊載入檔案內容至 B，名稱載入至 A
+                const link = document.createElement('a');
+                link.className = 'file-link';
+                link.textContent = fileName;
+                link.href = '#';
+                link.onclick = function(e) {
+                    e.preventDefault();
+                    inputA.value = fileName;
+                    inputB.value = files[fileName] || '';
+                };
 
-    xhr.onerror = function() {
-      errorCallback(new Error('本地連線遭外掛或網路安全設定阻斷'));
-    };
+                // 刪除按鈕
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn';
+                delBtn.textContent = '刪除按鈕';
+                delBtn.onclick = function() {
+                    if(confirm(`確定要刪除 ${fileName} 嗎？`)) {
+                        deleteFile(fileName);
+                    }
+                };
 
-    xhr.send(data ? JSON.stringify(data) : null);
-  }
+                itemDiv.appendChild(link);
+                itemDiv.appendChild(delBtn);
+                listContainer.appendChild(itemDiv);
+            });
+        }
 
-  // 支援繁體中文的二進位轉碼
-  function utoa(str) {
-    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-      return String.fromCharCode('0x' + p1);
-    }));
-  }
+        // 依照目前 A 的預設值 (tmp.txt)，在網頁載入時自動讀取 B 的內容
+        function initLoad() {
+            const files = JSON.parse(localStorage.getItem('cloud_files')) || {};
+            const defaultName = inputA.value;
+            if (files[defaultName] !== undefined) {
+                inputB.value = files[defaultName];
+            } else {
+                inputB.value = '';
+            }
+        }
 
-  function atou(str) {
-    return decodeURIComponent(Array.prototype.map.call(atob(str.replace(/\s/g, '')), function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-  }
+        // 保存功能
+        saveBtn.addEventListener('click', function() {
+            const fileName = inputA.value.trim();
+            const fileContent = inputB.value;
 
-  function initPage() {
-    if (!getToken()) return;
+            if (!fileName) {
+                alert('請輸入有效的檔案名稱！');
+                return;
+            }
 
-    xhrCall('GET', `${FOLDER}/tmp.txt`, null, function(data) {
-      if (data && data.content) {
-        document.getElementById('inputB').value = atou(data.content);
-      } else {
-        document.getElementById('inputB').value = '';
-      }
-      refreshList();
-    }, function(err) {
-      console.error(err.message);
-      document.getElementById('inputB').value = '';
-      refreshList();
-    });
-  }
+            const files = JSON.parse(localStorage.getItem('cloud_files')) || {};
+            // 以 A 的內容命名並保存 B 的內容
+            files[fileName] = fileContent;
+            localStorage.setItem('cloud_files', JSON.stringify(files));
 
-  function saveText() {
-    const filename = document.getElementById('inputA').value.trim();
-    const content = document.getElementById('inputB').value;
-    if (!filename) return alert('請輸入檔案名稱！');
+            // 成功後處理：A 恢復為 tmp.txt，B 清空
+            inputA.value = 'tmp.txt';
+            inputB.value = '';
 
-    const path = `${FOLDER}/${filename}`;
+            // 重新刷新列表與預設讀取
+            renderFileList();
+            initLoad();
+            alert('儲存成功！');
+        });
 
-    xhrCall('GET', path, null, function(data) {
-      let sha = data ? data.sha : null;
-      
-      const body = {
-        message: `Cloud text update: ${filename}`,
-        content: utoa(content),
-        branch: BRANCH
-      };
-      if (sha) body.sha = sha;
+        // 刪除功能
+        function deleteFile(fileName) {
+            const files = JSON.parse(localStorage.getItem('cloud_files')) || {};
+            delete files[fileName];
+            localStorage.setItem('cloud_files', JSON.stringify(files));
+            
+            // 如果刪除的剛好是當前輸入框顯示的，則進行清空
+            if (inputA.value === fileName) {
+                inputA.value = 'tmp.txt';
+                initLoad();
+            }
+            renderFileList();
+        }
 
-      xhrCall('PUT', path, body, function() {
-        alert(`檔案 ${filename} 保存成功！`);
-        document.getElementById('inputA').value = 'tmp.txt';
-        document.getElementById('inputB').value = '';
-        refreshList();
-      }, function(err) {
-        alert('儲存失敗: ' + err.message);
-      });
-
-    }, function(err) {
-      alert('讀取失敗: ' + err.message);
-    });
-  }
-
-  function refreshList() {
-    const container = document.getElementById('fileList');
-    container.innerHTML = '目錄列表加載中...';
-
-    xhrCall('GET', FOLDER, null, function(files) {
-      if (!files || !Array.isArray(files) || files.length === 0) {
-        container.innerHTML = '<div>資料夾內尚無檔案</div>';
-        return;
-      }
-
-      container.innerHTML = '';
-      const filteredFiles = files.filter(item => item.type === 'file');
-
-      filteredFiles.forEach(file => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
-
-        const link = document.createElement('a');
-        link.href = file.download_url;
-        link.target = '_blank';
-        link.textContent = file.name;
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-del';
-        delBtn.textContent = '刪除';
-        delBtn.onclick = function() {
-          if (!confirm(`確定要刪除 ${file.name} 嗎？`)) return;
-          
-          const body = {
-            message: `Delete file: ${file.name}`,
-            sha: file.sha,
-            branch: BRANCH
-          };
-
-          xhrCall('DELETE', file.path, body, function() {
-            alert(`${file.name} 刪除成功！`);
-            refreshList();
-          }, function(err) {
-            alert('刪除失敗: ' + err.message);
-          });
-        };
-
-        div.appendChild(link);
-        div.appendChild(delBtn);
-        container.appendChild(div);
-      });
-
-    }, function(err) {
-      container.innerHTML = `<div style="color:red">無法載入列表: ${err.message}</div>`;
-    });
-  }
-</script>
+        // 網頁載入初始化執行
+        renderFileList();
+        initLoad();
+    </script>
 </body>
 </html>
