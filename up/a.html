@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雲端文本暫存區</title>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 15px; background: #f9f9f9; color: #333; }
+  input, textarea, button { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+  textarea { font-size: 22.5px; resize: vertical; }
+  button { background: #007bff; color: white; font-weight: bold; border: none; cursor: pointer; }
+  button:hover { background: #0056b3; }
+  .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; margin-bottom: 6px; border: 1px solid #eee; border-radius: 4px; }
+  .list-item a { color: #007bff; text-decoration: none; word-break: break-all; margin-right: 10px; }
+  .btn-del { width: auto; margin: 0; background: #dc3545; padding: 6px 12px; font-size: 14px; }
+  .btn-del:hover { background: #bd2130; }
+  .status { font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; text-align: right; }
+</style>
+</head>
+<body>
+
+  <h2>📝 雲端文本暫存區</h2>
+
+  <!-- 輸入框 Z：Token -->
+  <input type="password" id="inputZ" placeholder="請輸入token" onchange="initPage()">
+  
+  <!-- 輸入框 A：檔名 -->
+  <input type="text" id="inputA" value="tmp.txt" placeholder="請輸入檔案名稱">
+  
+  <!-- 輸入框 B：文本內容 -->
+  <textarea id="inputB" rows="6" placeholder="請輸入文本內容（文字大小 22.5px）"></textarea>
+  
+  <!-- 狀態提示與保存按鈕 -->
+  <div class="status" id="apiStatus">API 剩餘額度: --</div>
+  <button onclick="saveText()">保存文本</button>
+
+  <hr>
+
+  <!-- 目錄文檔列表 -->
+  <h3>📁 目錄文檔列表</h3>
+  <div id="fileList">請輸入正確的 Token 以載入檔案列表...</div>
+
+<script>
+  // ⚙️ 你的 GitHub 配置（請根據你的實際帳號修改）
+  const OWNER = 'paopaoloung';
+  const REPO = 'paopaoloung.github.io';
+  const BRANCH = 'main';
+  const FOLDER = 'up/files'; // 檔案儲存的資料夾路徑
+
+  // 取得目前輸入的 Token
+  function getToken() {
+    return document.getElementById('inputZ').value.trim();
+  }
+
+  // 通用 GitHub API 請求封裝
+  async function apiFetch(method, path, body = null) {
+    const token = getToken();
+    if (!token) return null;
+
+    const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
+    const options = {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      }
+    };
+    if (body) options.body = JSON.stringify(body);
+
+    const res = await fetch(url, options);
+    
+    // 更新 API 剩餘額度提示
+    const remaining = res.headers.get('X-RateLimit-Remaining');
+    if (remaining !== null) {
+      document.getElementById('apiStatus').textContent = `API 剩餘額度: ${remaining}`;
+    }
+
+    if (!res.ok && res.status !== 404) {
+      const errData = await res.json();
+      throw new Error(errData.message || 'API 請求失敗');
+    }
+    return res;
+  }
+
+  // 🧑‍💻 解決中文亂碼的 Base64 編碼與解碼
+  function utoa(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+  function atou(str) {
+    return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
+  }
+
+  // 1. 初始化頁面：嘗試讀取預設的 tmp.txt 並刷新列表
+  async function initPage() {
+    const token = getToken();
+    if (!token) return;
+
+    // 讀取預設 tmp.txt 的內容並顯示在輸入框 B
+    try {
+      const res = await apiFetch('GET', `${FOLDER}/tmp.txt`);
+      if (res && res.status === 200) {
+        const data = await res.json();
+        document.getElementById('inputB').value = atou(data.content);
+      } else {
+        document.getElementById('inputB').value = ''; // 若不存在則留空
+      }
+    } catch (e) {
+      console.error('讀取預設檔案失敗:', e);
+      document.getElementById('inputB').value = '';
+    }
+
+    // 刷新目錄列表
+    refreshList();
+  }
+
+  // 2. 保存文本按鈕邏輯
+  async function saveText() {
+    const filename = document.getElementById('inputA').value.trim();
+    const content = document.getElementById('inputB').value;
+    if (!filename) return alert('請輸入檔案名稱！');
+
+    const path = `${FOLDER}/${filename}`;
+    
+    try {
+      // 檢查檔案是否已存在，若存在需要獲取 sha 才能覆蓋
+      let sha = null;
+      const checkRes = await apiFetch('GET', path);
+      if (checkRes && checkRes.status === 200) {
+        const data = await checkRes.json();
+        sha = data.sha;
+      }
+
+      // 上傳/覆寫檔案
+      const body = {
+        message: `Save text: ${filename}`,
+        content: utoa(content),
+        branch: BRANCH
+      };
+      if (sha) body.sha = sha;
+
+      await apiFetch('PUT', path, body);
+      alert(`檔案 ${filename} 保存成功！`);
+
+      // 成功後的核心邏輯要求：
+      document.getElementById('inputA').value = 'tmp.txt'; // 1. A 恢復為 tmp.txt
+      document.getElementById('inputB').value = '';        // 2. B 清空
+      
+      refreshList(); // 重新整理列表
+    } catch (e) {
+      alert('保存失敗: ' + e.message);
+    }
+  }
+
+  // 3. 讀取目錄並渲染成超連結與刪除按鈕
+  async function refreshList() {
+    const container = document.getElementById('fileList');
+    try {
+      const res = await apiFetch('GET', FOLDER);
+      if (!res || res.status === 404) {
+        container.innerHTML = '<div>資料夾內尚無檔案</div>';
+        return;
+      }
+      
+      const files = await res.json();
+      if (!Array.isArray(files) || files.length === 0) {
+        container.innerHTML = '<div>資料夾內尚無檔案</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      // 篩選出一般檔案（排除資料夾）
+      const filteredFiles = files.filter(item => item.type === 'file');
+
+      filteredFiles.forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+
+        // 建立檔案超連結（點擊可直接查看或下載 GitHub 上的 Raw 原始檔）
+        const link = document.createElement('a');
+        link.href = file.download_url;
+        link.target = '_blank';
+        link.textContent = file.name;
+
+        // 建立刪除按鈕
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-del';
+        delBtn.textContent = '刪除';
+        delBtn.onclick = async () => {
+          if (!confirm(`確定要刪除 ${file.name} 嗎？`)) return;
+          try {
+            const body = {
+              message: `Delete file: ${file.name}`,
+              sha: file.sha,
+              branch: BRANCH
+            };
+            await apiFetch('DELETE', file.path, body);
+            alert(`${file.name} 刪除成功！`);
+            refreshList();
+          } catch (e) {
+            alert('刪除失敗: ' + e.message);
+          }
+        };
+
+        div.appendChild(link);
+        div.appendChild(delBtn);
+        container.appendChild(div);
+      });
+    } catch (e) {
+      container.innerHTML = `<div style="color:red">無法載入列表: ${e.message}</div>`;
+    }
+  }
+</script>
+</body>
+</html>
