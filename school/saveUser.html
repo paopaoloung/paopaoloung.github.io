@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>自動記錄玩家選擇</title>
+</head>
+<body>
+
+    <label for="allPlayer00">請選擇玩家：</label>
+    <!-- 玩家選擇下拉選單 -->
+    <select id="allPlayer00">
+        <option value="">-- 請選擇 --</option>
+        <option value="1">燈龍魚</option>
+        <option value="2">小毛蟲</option>
+        <option value="3">BB軒</option>
+        <option value="4">大白鯊</option>
+    </select>
+
+
+
+    <script>
+        // 1. 獲取網頁上的下拉選單元素
+       //  document.getElementById(...) --尋找指定 id 的 HTML 標籤
+        const myDropdown = document.getElementById("allPlayer00");
+
+        // 2. 網頁載入時：檢查有沒有舊的紀錄
+        const oldSelection = localStorage.getItem("user00");
+			//  localStorage.getItem(key) --讀取小紙條
+        if (oldSelection) {
+            myDropdown.value = oldSelection; // 自動填入上次的選擇
+            console.log("已自動回復上次的選擇：玩家 " + oldSelection);
+        }
+
+        // 3. 當使用者改變選擇時：立刻儲存到本地
+        myDropdown.addEventListener("change", function() {
+            const nowSelected = myDropdown.value;
+            //  localStorage.setItem(key, value) 
+           //   --在瀏覽器留下小紙條。把資料（value）儲存在指定的名字（key）標籤裡
+            localStorage.setItem("user00", nowSelected); // 儲存資料
+            console.log("已儲存本次選擇：玩家 " + nowSelected);
+        });
+    </script>
+
+</body>
+</html>
