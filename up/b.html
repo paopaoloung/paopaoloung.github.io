@@ -1,0 +1,185 @@
+    <!-- Token 输入区域 -->
+    <div class="mb-6">
+        <label class="block text-gray-700 font-bold mb-2">输入框Z：个人访问Token</label>
+        <input id="inputZ" type="text" placeholder="请输入token" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button id="saveTokenBtn" class="btn-primary mt-3">保存Token</button>
+    </div>
+
+    <!-- 文件名输入区域 -->
+    <div class="mb-6">
+        <label class="block text-gray-700 font-bold mb-2">输入框A：保存文件名</label>
+        <input id="inputA" type="text" value="tmp.txt" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+
+    <!-- 文本内容输入区域 -->
+    <div class="mb-6">
+        <label class="block text-gray-700 font-bold mb-2">输入框B：文件内容</label>
+        <textarea id="inputB" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-b-large min-h-[200px]"></textarea>
+    </div>
+
+    <!-- 保存按钮 -->
+    <button id="saveFileBtn" class="btn-primary w-full mb-8 font-bold">保存文件</button>
+
+    <!-- 文件列表区域 -->
+    <h3 class="text-xl font-bold mb-4 text-gray-800">目录文档列表</h3>
+    <div id="fileListContainer" class="rounded-lg border border-gray-200 overflow-hidden">
+        <div class="text-center p-4 text-gray-500">加载中...</div>
+    </div>
+</div>
+
+<script>
+    const REPO_OWNER = "paopaoloung";
+    const REPO_NAME = "paopaoloung";
+    const FILES_PATH = "up/files/";
+    let githubToken = "";
+
+    // 初始化读取本地存储的Token
+    window.addEventListener("load", () => {
+        const localToken = localStorage.getItem("cloudTempToken");
+        if(localToken) {
+            document.getElementById("inputZ").value = localToken;
+            githubToken = localToken;
+        }
+        loadFileList();
+    });
+
+    // 保存Token按钮逻辑
+    document.getElementById("saveTokenBtn").addEventListener("click", () => {
+        githubToken = document.getElementById("inputZ").value.trim();
+        if(!githubToken) {
+            alert("Token不能为空");
+            return;
+        }
+        localStorage.setItem("cloudTempToken", githubToken);
+        alert("Token已保存至本地，后续无需重复输入");
+    });
+
+    // 保存文件按钮逻辑
+    document.getElementById("saveFileBtn").addEventListener("click", async () => {
+        if(!githubToken) {
+            alert("请先输入并保存Token");
+            return;
+        }
+        const fileName = document.getElementById("inputA").value.trim() || "tmp.txt";
+        const content = document.getElementById("inputB").value;
+        const fullFilePath = `${FILES_PATH}${fileName}`;
+
+        try {
+            // 先查询文件是否已存在获取sha值
+            let fileSha = null;
+            const checkRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${fullFilePath}`, {
+                headers: { "Authorization": `token ${githubToken}` }
+            });
+            if(checkRes.status === 200) {
+                const checkData = await checkRes.json();
+                fileSha = checkData.sha;
+            }
+
+            // 上传覆盖或创建新文件
+            const uploadRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${fullFilePath}`, {
+                method: "PUT",
+                headers: { 
+                    "Authorization": `token ${githubToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: `云端暂存系统更新文件: ${fileName}`,
+                    content: btoa(unescape(encodeURIComponent(content))),
+                    sha: fileSha
+                })
+            });
+
+            if(uploadRes.status === 200 || uploadRes.status === 201) {
+                alert("文件保存成功");
+                // 恢复输入框A默认值，清空输入框B
+                document.getElementById("inputA").value = "tmp.txt";
+                document.getElementById("inputB").value = "";
+                loadFileList();
+            } else {
+                const errData = await uploadRes.json();
+                alert(`保存失败：${errData.message}`);
+            }
+        } catch(err) {
+            alert(`请求出错：${err.toString()}`);
+        }
+    });
+
+    // 加载文件列表逻辑
+    async function loadFileList() {
+        const container = document.getElementById("fileListContainer");
+        try {
+            const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILES_PATH}`);
+            if(res.status === 404) {
+                container.innerHTML = `<div class="p-4 text-center text-gray-500">文件目录为空</div>`;
+                return;
+            }
+            const fileData = await res.json();
+            container.innerHTML = "";
+            fileData.forEach(item => {
+                if(item.type === "file") {
+                    const fileItemEl = document.createElement("div");
+                    fileItemEl.className = "file-item";
+                    fileItemEl.innerHTML = `
+                        <a href="${item.html_url}" target="_blank" class="text-indigo-600 hover:text-indigo-800">${item.name}</a>
+                        <div>
+                            <button class="btn-danger" data-filename="${item.name}">删除按钮</button>
+                        </div>
+                    `;
+                    // 绑定读取文件事件
+                    fileItemEl.querySelector("a").addEventListener("click", (e) => {
+                        e.preventDefault();
+                        readAndLoadFileContent(item.name);
+                    });
+                    // 绑定删除按钮事件
+                    fileItemEl.querySelector(".btn-danger").addEventListener("click", async (e) => {
+                        await deleteTargetFile(item.name, item.sha);
+                    });
+                    container.appendChild(fileItemEl);
+                }
+            });
+        } catch(err) {
+            container.innerHTML = `<div class="p-4 text-center text-red-500">加载目录失败，请检查网络连接</div>`;
+        }
+    }
+
+    // 读取文件内容填充到输入框B
+    async function readAndLoadFileContent(fileName) {
+        try {
+            const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILES_PATH}${fileName}`);
+            const data = await res.json();
+            const fileContent = decodeURIComponent(escape(atob(data.content)));
+            document.getElementById("inputB").value = fileContent;
+            document.getElementById("inputA").value = fileName;
+        } catch(err) {
+            alert("读取文件失败");
+        }
+    }
+
+    // 删除目标文件逻辑
+    async function deleteTargetFile(fileName, fileSha) {
+        if(!githubToken) {
+            alert("请先输入并保存Token");
+            return;
+        }
+        if(!confirm(`确认要删除文件 ${fileName} 吗？`)) return;
+        try {
+            const delRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILES_PATH}${fileName}`, {
+                method: "DELETE",
+                headers: { "Authorization": `token ${githubToken}` },
+                body: JSON.stringify({
+                    message: `云端暂存系统删除文件: ${fileName}`,
+                    sha: fileSha
+                })
+            });
+            if(delRes.status === 200) {
+                alert("文件删除成功");
+                loadFileList();
+            } else {
+                const errData = await delRes.json();
+                alert(`删除失败：${errData.message}`);
+            }
+        } catch(err) {
+            alert(`删除请求出错：${err.toString()}`);
+        }
+    }
+</script>
