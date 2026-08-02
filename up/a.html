@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雲端文本暫存區</title>
+<title>雲端文本暫存區 v3</title>
 <style>
   body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 15px; background: #f9f9f9; color: #333; }
   input, textarea, button { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
@@ -14,12 +14,13 @@
   .list-item a { color: #007bff; text-decoration: none; word-break: break-all; margin-right: 10px; }
   .btn-del { width: auto; margin: 0; background: #dc3545; padding: 6px 12px; font-size: 14px; }
   .btn-del:hover { background: #bd2130; }
-  .status { font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; text-align: right; }
+  .status-bar { display: flex; justify-content: space-between; font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; }
+  .btn-clear-cache { background: #6c757d; font-size: 12px; padding: 4px 8px; width: auto; margin: 0; }
 </style>
 </head>
 <body>
 
-  <h2>📝 雲端文本暫存區</h2>
+  <h2>📝 雲端文本暫存區 v3</h2>
 
   <!-- 輸入框 Z -->
   <input type="password" id="inputZ" placeholder="請輸入token" onchange="initPage()">
@@ -30,7 +31,11 @@
   <!-- 輸入框 B -->
   <textarea id="inputB" rows="6" placeholder="請輸入文本內容（文字大小 22.5px）"></textarea>
   
-  <div class="status" id="apiStatus">API 剩餘額度: --</div>
+  <div class="status-bar">
+    <button class="btn-clear-cache" onclick="forceReload()">🧹 強制刷新並清除快取</button>
+    <div id="apiStatus">API 剩餘額度: --</div>
+  </div>
+  
   <button onclick="saveText()">保存文本</button>
 
   <hr>
@@ -39,21 +44,25 @@
   <div id="fileList">請輸入正確的 Token 以載入檔案列表...</div>
 
 <script>
-  const OWNER = 'paopaoloung';
-  const REPO = 'paopaoloung.github.io';
   const BRANCH = 'main';
-  const FOLDER = 'up/files';
 
   function getToken() {
     return document.getElementById('inputZ').value.trim();
   }
 
-  // 確保此處的網址拼接百分之百正確，絕無 {owner} 等錯誤字眼
+  // 強制清除瀏覽器快取並重新整理
+  function forceReload() {
+    window.location.reload(true);
+  }
+
+  // 核心 API 請求：直接將使用者名稱和專案名稱寫死在字串中，徹底避免拼接出錯
   async function apiFetch(method, path, body = null) {
     const token = getToken();
     if (!token) return null;
 
-    const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
+    // 這裡完全棄用變數，直接寫死你的正確 GitHub API 路徑
+    const url = `https://github.com{path}?t=${Date.now()}`;
+    
     const options = {
       method: method,
       headers: {
@@ -90,7 +99,7 @@
     if (!token) return;
 
     try {
-      const res = await apiFetch('GET', `${FOLDER}/tmp.txt`);
+      const res = await apiFetch('GET', 'up/files/tmp.txt');
       if (res && res.status === 200) {
         const data = await res.json();
         document.getElementById('inputB').value = atou(data.content);
@@ -110,7 +119,7 @@
     const content = document.getElementById('inputB').value;
     if (!filename) return alert('請輸入檔案名稱！');
 
-    const path = `${FOLDER}/${filename}`;
+    const path = `up/files/${filename}`;
     
     try {
       let sha = null;
@@ -142,7 +151,7 @@
   async function refreshList() {
     const container = document.getElementById('fileList');
     try {
-      const res = await apiFetch('GET', FOLDER);
+      const res = await apiFetch('GET', 'up/files');
       if (!res || res.status === 404) {
         container.innerHTML = '<div>資料夾內尚無檔案</div>';
         return;
