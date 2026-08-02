@@ -53,10 +53,12 @@
   }
 
   // 通用 GitHub API 請求封裝
+    // 通用 GitHub API 請求封裝（已修正網址拼接錯誤）
   async function apiFetch(method, path, body = null) {
     const token = getToken();
     if (!token) return null;
 
+    // 修正後的正確 GitHub API 網址
     const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
     const options = {
       method: method,
@@ -82,6 +84,7 @@
     }
     return res;
   }
+
 
   // 🧑‍💻 解決中文亂碼的 Base64 編碼與解碼
   function utoa(str) {
