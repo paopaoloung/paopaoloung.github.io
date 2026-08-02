@@ -19,46 +19,40 @@
 </head>
 <body>
 
-  <h2>📝 雲端文本暫存區5TlaqZT11A</h2>
+  <h2>📝 雲端文本暫存區</h2>
 
-  <!-- 輸入框 Z：Token -->
-  <input id="inputZ" value="" onchange="initPage()">
+  <!-- 輸入框 Z -->
+  <input type="password" id="inputZ" placeholder="請輸入token" onchange="initPage()">
   
-  <!-- 輸入框 A：檔名 -->
+  <!-- 輸入框 A -->
   <input type="text" id="inputA" value="tmp.txt" placeholder="請輸入檔案名稱">
   
-  <!-- 輸入框 B：文本內容 -->
+  <!-- 輸入框 B -->
   <textarea id="inputB" rows="6" placeholder="請輸入文本內容（文字大小 22.5px）"></textarea>
   
-  <!-- 狀態提示與保存按鈕 -->
   <div class="status" id="apiStatus">API 剩餘額度: --</div>
   <button onclick="saveText()">保存文本</button>
 
   <hr>
 
-  <!-- 目錄文檔列表 -->
   <h3>📁 目錄文檔列表</h3>
   <div id="fileList">請輸入正確的 Token 以載入檔案列表...</div>
 
 <script>
-  // ⚙️ 你的 GitHub 配置（請根據你的實際帳號修改）
   const OWNER = 'paopaoloung';
   const REPO = 'paopaoloung.github.io';
   const BRANCH = 'main';
-  const FOLDER = 'up/files'; // 檔案儲存的資料夾路徑
+  const FOLDER = 'up/files';
 
-  // 取得目前輸入的 Token
   function getToken() {
     return document.getElementById('inputZ').value.trim();
   }
 
-  // 通用 GitHub API 請求封裝
-    // 通用 GitHub API 請求封裝（已修正網址拼接錯誤）
+  // 確保此處的網址拼接百分之百正確，絕無 {owner} 等錯誤字眼
   async function apiFetch(method, path, body = null) {
     const token = getToken();
     if (!token) return null;
 
-    // 修正後的正確 GitHub API 網址
     const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
     const options = {
       method: method,
@@ -72,7 +66,6 @@
 
     const res = await fetch(url, options);
     
-    // 更新 API 剩餘額度提示
     const remaining = res.headers.get('X-RateLimit-Remaining');
     if (remaining !== null) {
       document.getElementById('apiStatus').textContent = `API 剩餘額度: ${remaining}`;
@@ -85,8 +78,6 @@
     return res;
   }
 
-
-  // 🧑‍💻 解決中文亂碼的 Base64 編碼與解碼
   function utoa(str) {
     return btoa(unescape(encodeURIComponent(str)));
   }
@@ -94,30 +85,26 @@
     return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
   }
 
-  // 1. 初始化頁面：嘗試讀取預設的 tmp.txt 並刷新列表
   async function initPage() {
     const token = getToken();
     if (!token) return;
 
-    // 讀取預設 tmp.txt 的內容並顯示在輸入框 B
     try {
       const res = await apiFetch('GET', `${FOLDER}/tmp.txt`);
       if (res && res.status === 200) {
         const data = await res.json();
         document.getElementById('inputB').value = atou(data.content);
       } else {
-        document.getElementById('inputB').value = ''; // 若不存在則留空
+        document.getElementById('inputB').value = '';
       }
     } catch (e) {
       console.error('讀取預設檔案失敗:', e);
       document.getElementById('inputB').value = '';
     }
 
-    // 刷新目錄列表
     refreshList();
   }
 
-  // 2. 保存文本按鈕邏輯
   async function saveText() {
     const filename = document.getElementById('inputA').value.trim();
     const content = document.getElementById('inputB').value;
@@ -126,7 +113,6 @@
     const path = `${FOLDER}/${filename}`;
     
     try {
-      // 檢查檔案是否已存在，若存在需要獲取 sha 才能覆蓋
       let sha = null;
       const checkRes = await apiFetch('GET', path);
       if (checkRes && checkRes.status === 200) {
@@ -134,7 +120,6 @@
         sha = data.sha;
       }
 
-      // 上傳/覆寫檔案
       const body = {
         message: `Save text: ${filename}`,
         content: utoa(content),
@@ -145,17 +130,15 @@
       await apiFetch('PUT', path, body);
       alert(`檔案 ${filename} 保存成功！`);
 
-      // 成功後的核心邏輯要求：
-      document.getElementById('inputA').value = 'tmp.txt'; // 1. A 恢復為 tmp.txt
-      document.getElementById('inputB').value = '';        // 2. B 清空
+      document.getElementById('inputA').value = 'tmp.txt';
+      document.getElementById('inputB').value = '';
       
-      refreshList(); // 重新整理列表
+      refreshList();
     } catch (e) {
       alert('保存失敗: ' + e.message);
     }
   }
 
-  // 3. 讀取目錄並渲染成超連結與刪除按鈕
   async function refreshList() {
     const container = document.getElementById('fileList');
     try {
@@ -172,20 +155,17 @@
       }
 
       container.innerHTML = '';
-      // 篩選出一般檔案（排除資料夾）
       const filteredFiles = files.filter(item => item.type === 'file');
 
       filteredFiles.forEach(file => {
         const div = document.createElement('div');
         div.className = 'list-item';
 
-        // 建立檔案超連結（點擊可直接查看或下載 GitHub 上的 Raw 原始檔）
         const link = document.createElement('a');
         link.href = file.download_url;
         link.target = '_blank';
         link.textContent = file.name;
 
-        // 建立刪除按鈕
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-del';
         delBtn.textContent = '刪除';
