@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雲端文本暫存區 v3</title>
+<title>雲端文本暫存區 v4</title>
 <style>
   body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 15px; background: #f9f9f9; color: #333; }
   input, textarea, button { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
@@ -14,28 +14,23 @@
   .list-item a { color: #007bff; text-decoration: none; word-break: break-all; margin-right: 10px; }
   .btn-del { width: auto; margin: 0; background: #dc3545; padding: 6px 12px; font-size: 14px; }
   .btn-del:hover { background: #bd2130; }
-  .status-bar { display: flex; justify-content: space-between; font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; }
-  .btn-clear-cache { background: #6c757d; font-size: 12px; padding: 4px 8px; width: auto; margin: 0; }
+  .status-bar { font-size: 14px; color: #666; margin-top: -6px; margin-bottom: 12px; text-align: right; }
 </style>
 </head>
 <body>
 
-  <h2>📝 雲端文本暫存區 v3</h2>
+  <h2>📝 雲端文本暫存區 v4</h2>
 
-  <!-- 輸入框 Z -->
+  <!-- 輸入框 Z：Token 欄位 -->
   <input type="password" id="inputZ" placeholder="請輸入token" onchange="initPage()">
   
-  <!-- 輸入框 A -->
+  <!-- 輸入框 A：檔案名稱 -->
   <input type="text" id="inputA" value="tmp.txt" placeholder="請輸入檔案名稱">
   
-  <!-- 輸入框 B -->
+  <!-- 輸入框 B：主要文字內容 -->
   <textarea id="inputB" rows="6" placeholder="請輸入文本內容（文字大小 22.5px）"></textarea>
   
-  <div class="status-bar">
-    <button class="btn-clear-cache" onclick="forceReload()">🧹 強制刷新並清除快取</button>
-    <div id="apiStatus">API 剩餘額度: --</div>
-  </div>
-  
+  <div class="status-bar" id="apiStatus">API 剩餘額度: --</div>
   <button onclick="saveText()">保存文本</button>
 
   <hr>
@@ -44,121 +39,126 @@
   <div id="fileList">請輸入正確的 Token 以載入檔案列表...</div>
 
 <script>
+  // ⚙️ 固定配置
+  const OWNER = 'paopaoloung';
+  const REPO = 'paopaoloung.github.io';
   const BRANCH = 'main';
+  const FOLDER = 'up/files';
 
   function getToken() {
     return document.getElementById('inputZ').value.trim();
   }
 
-  // 強制清除瀏覽器快取並重新整理
-  function forceReload() {
-    window.location.reload(true);
-  }
-
-  // 核心 API 請求：直接將使用者名稱和專案名稱寫死在字串中，徹底避免拼接出錯
-  async function apiFetch(method, path, body = null) {
-    const token = getToken();
-    if (!token) return null;
-
-    // 這裡完全棄用變數，直接寫死你的正確 GitHub API 路徑
-    const url = `https://github.com{path}?t=${Date.now()}`;
-    
-    const options = {
-      method: method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      }
-    };
-    if (body) options.body = JSON.stringify(body);
-
-    const res = await fetch(url, options);
-    
-    const remaining = res.headers.get('X-RateLimit-Remaining');
-    if (remaining !== null) {
-      document.getElementById('apiStatus').textContent = `API 剩餘額度: ${remaining}`;
-    }
-
-    if (!res.ok && res.status !== 404) {
-      const errData = await res.json();
-      throw new Error(errData.message || 'API 請求失敗');
-    }
-    return res;
-  }
-
-  function utoa(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  function atou(str) {
-    return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
-  }
-
-  async function initPage() {
+  // 🛠️ 採用低階 XHR 代替 fetch，全面防禦瀏覽器惡意插件的攔截
+  function xhrCall(method, path, data = null, callback, errorCallback) {
     const token = getToken();
     if (!token) return;
 
-    try {
-      const res = await apiFetch('GET', 'up/files/tmp.txt');
-      if (res && res.status === 200) {
-        const data = await res.json();
+    const xhr = new XMLHttpRequest();
+    const url = `https://github.com{OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
+    
+    xhr.open(method, url, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.onload = function() {
+      // 擷取 API 剩餘次數
+      const remaining = xhr.getResponseHeader('X-RateLimit-Remaining');
+      if (remaining !== null) {
+        document.getElementById('apiStatus').textContent = `API 剩餘額度: ${remaining}`;
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        callback(xhr.responseText ? JSON.parse(xhr.responseText) : null);
+      } else if (xhr.status === 404) {
+        callback(null); // 檔案不存在的情況
+      } else {
+        let msg = '請求失敗';
+        try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e) {}
+        errorCallback(new Error(msg));
+      }
+    };
+
+    xhr.onerror = function() {
+      errorCallback(new Error('網路連線遭阻斷 (XHR Error)'));
+    };
+
+    xhr.send(data ? JSON.stringify(data) : null);
+  }
+
+  // 🔠 完美支援繁體中文的二進位轉碼（解決 atob/btoa 亂碼）
+  function utoa(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+      return String.fromCharCode('0x' + p1);
+    }));
+  }
+
+  function atou(str) {
+    return decodeURIComponent(Array.prototype.map.call(atob(str.replace(/\s/g, '')), function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  }
+
+  // 初始化：讀取預設的 tmp.txt 並加載列表
+  function initPage() {
+    if (!getToken()) return;
+
+    xhrCall('GET', `${FOLDER}/tmp.txt`, null, function(data) {
+      if (data && data.content) {
         document.getElementById('inputB').value = atou(data.content);
       } else {
         document.getElementById('inputB').value = '';
       }
-    } catch (e) {
-      console.error('讀取預設檔案失敗:', e);
+      refreshList();
+    }, function(err) {
+      console.error('初始化檔案載入失敗:', err);
       document.getElementById('inputB').value = '';
-    }
-
-    refreshList();
+      refreshList();
+    });
   }
 
-  async function saveText() {
+  // 保存文本邏輯
+  function saveText() {
     const filename = document.getElementById('inputA').value.trim();
     const content = document.getElementById('inputB').value;
     if (!filename) return alert('請輸入檔案名稱！');
 
-    const path = `up/files/${filename}`;
-    
-    try {
-      let sha = null;
-      const checkRes = await apiFetch('GET', path);
-      if (checkRes && checkRes.status === 200) {
-        const data = await checkRes.json();
-        sha = data.sha;
-      }
+    const path = `${FOLDER}/${filename}`;
 
+    // 先查詢該檔案是否存在以獲取 sha 碼
+    xhrCall('GET', path, null, function(data) {
+      let sha = data ? data.sha : null;
+      
       const body = {
-        message: `Save text: ${filename}`,
+        message: `Save file via XHR: ${filename}`,
         content: utoa(content),
         branch: BRANCH
       };
       if (sha) body.sha = sha;
 
-      await apiFetch('PUT', path, body);
-      alert(`檔案 ${filename} 保存成功！`);
+      // 執行上傳/更新
+      xhrCall('PUT', path, body, function() {
+        alert(`檔案 ${filename} 保存成功！`);
+        document.getElementById('inputA').value = 'tmp.txt'; // 恢復欄位 A
+        document.getElementById('inputB').value = '';        // 清空欄位 B
+        refreshList();
+      }, function(err) {
+        alert('儲存失敗: ' + err.message);
+      });
 
-      document.getElementById('inputA').value = 'tmp.txt';
-      document.getElementById('inputB').value = '';
-      
-      refreshList();
-    } catch (e) {
-      alert('保存失敗: ' + e.message);
-    }
+    }, function(err) {
+      alert('查詢伺服器失敗: ' + err.message);
+    });
   }
 
-  async function refreshList() {
+  // 刷新目錄列表並建立超連結與刪除按鈕
+  function refreshList() {
     const container = document.getElementById('fileList');
-    try {
-      const res = await apiFetch('GET', 'up/files');
-      if (!res || res.status === 404) {
-        container.innerHTML = '<div>資料夾內尚無檔案</div>';
-        return;
-      }
-      
-      const files = await res.json();
-      if (!Array.isArray(files) || files.length === 0) {
+    container.innerHTML = '讀取目錄中...';
+
+    xhrCall('GET', FOLDER, null, function(files) {
+      if (!files || !Array.isArray(files) || files.length === 0) {
         container.innerHTML = '<div>資料夾內尚無檔案</div>';
         return;
       }
@@ -178,29 +178,31 @@
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-del';
         delBtn.textContent = '刪除';
-        delBtn.onclick = async () => {
+        delBtn.onclick = function() {
           if (!confirm(`確定要刪除 ${file.name} 嗎？`)) return;
-          try {
-            const body = {
-              message: `Delete file: ${file.name}`,
-              sha: file.sha,
-              branch: BRANCH
-            };
-            await apiFetch('DELETE', file.path, body);
+          
+          const body = {
+            message: `Delete file: ${file.name}`,
+            sha: file.sha,
+            branch: BRANCH
+          };
+
+          xhrCall('DELETE', file.path, body, function() {
             alert(`${file.name} 刪除成功！`);
             refreshList();
-          } catch (e) {
-            alert('刪除失敗: ' + e.message);
-          }
+          }, function(err) {
+            alert('刪除失敗: ' + err.message);
+          });
         };
 
         div.appendChild(link);
         div.appendChild(delBtn);
         container.appendChild(div);
       });
-    } catch (e) {
-      container.innerHTML = `<div style="color:red">無法載入列表: ${e.message}</div>`;
-    }
+
+    }, function(err) {
+      container.innerHTML = `<div style="color:red">無法載入列表: ${err.message}</div>`;
+    });
   }
 </script>
 </body>
