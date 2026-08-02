@@ -3,72 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端文本暫存區 v5</title>
+    <title>雲端文本暫存區 v5 (修正版)</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        textarea {
-            font-size: 22.5px; /* 輸入框B文字大小設為22.5 */
-            height: 200px;
-            resize: vertical;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .file-list {
-            margin-top: 30px;
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-        }
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .file-item a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .file-item a:hover {
-            text-decoration: underline;
-        }
-        .btn-delete {
-            background-color: #dc3545;
-            padding: 5px 10px;
-            font-size: 14px;
-        }
-        .btn-delete:hover {
-            background-color: #bd2130;
-        }
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        textarea { font-size: 22.5px; height: 200px; resize: vertical; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .file-list { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .file-item a { color: #007bff; text-decoration: none; }
+        .file-item a:hover { text-decoration: underline; }
+        .btn-delete { background-color: #dc3545; padding: 5px 10px; font-size: 14px; }
+        .btn-delete:hover { background-color: #bd2130; }
+        .error-msg { color: #dc3545; background-color: #f8d7da; padding: 10px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -78,7 +28,7 @@
     <!-- 輸入框Z：Token驗證 -->
     <div class="form-group">
         <label for="tokenInput">Token 驗證：</label>
-        <input type="text" id="tokenInput" value="---請輸入token">
+        <input type="text" id="tokenInput" value="---請輸入token" onchange="fetchFileList()">
     </div>
 
     <!-- 輸入框A：檔案名稱 -->
@@ -105,47 +55,37 @@
     </div>
 
     <script>
-        // 設定您目前的 GitHub 基本參數
         const OWNER = "paopaoloung";
         const REPO = "paopaoloung.github.io";
-        const FOLDER_PATH = "up/files"; // 儲存雲端文件的資料夾路徑
+        const FOLDER_PATH = "up/files"; 
 
-        // 頁面載入完成後自動執行讀取
         window.onload = function() {
-            // 自動嘗試讀取預設的 tmp.txt
             loadDefaultFile();
-            // 自動更新下方文件清單
             fetchFileList();
         };
 
-        // 取得目前有效的 Token（若為預設文字則回傳空字串）
         function getToken() {
             const token = document.getElementById('tokenInput').value.trim();
-            if (token === "---請輸入token" || !token) {
-                return "";
-            }
+            if (token === "---請輸入token" || !token) return "";
             return token;
         }
 
-        // 輸入框B：讀取預設的 tmp.txt，若不存在則留空
         async function loadDefaultFile() {
             const contentInput = document.getElementById('contentInput');
             try {
-                // 直接向 Pages 請求靜態檔案（不需權杖即可公開讀取）
                 const response = await fetch(`https://${OWNER}.github.io/${FOLDER_PATH}/tmp.txt?t=${Date.now()}`);
                 if (response.ok) {
                     contentInput.value = await response.text();
                 } else {
-                    contentInput.value = ""; // 檔案不存在留空
-                    contentInput.placeholder = "預設檔案 tmp.txt 不存在，請輸入新內容。";
+                    contentInput.value = "";
+                    contentInput.placeholder = "預設檔案 tmp.txt 不存在，儲存後會自動建立。";
                 }
             } catch (error) {
                 contentInput.value = "";
-                contentInput.placeholder = "讀取失敗或檔案不存在。";
+                contentInput.placeholder = "讀取失敗。";
             }
         }
 
-        // 按鈕保存：將B的內容以A命名並保存，成功後A恢復為tmp.txt，B清空
         async function saveFile() {
             const token = getToken();
             if (!token) {
@@ -158,15 +98,11 @@
             const filename = filenameInput.value.trim();
             const content = contentInput.value;
 
-            if (!filename) {
-                alert("請輸入檔案名稱！");
-                return;
-            }
+            if (!filename) { alert("請輸入檔案名稱！"); return; }
 
             const url = `https://github.com{OWNER}/${REPO}/contents/${FOLDER_PATH}/${filename}`;
             
             try {
-                // 1. 檢查檔案是否已存在，若存在需要獲取其 sha 碼才能更新
                 let sha = "";
                 const checkRes = await fetch(url, {
                     headers: { "Authorization": `token ${token}` }
@@ -176,15 +112,12 @@
                     sha = fileData.sha;
                 }
 
-                // 2. 將文本內容轉為 Base64 編碼以符合 GitHub API 規範
                 const base64Content = btoa(unescape(encodeURIComponent(content)));
-
-                // 3. 傳送 PUT 請求寫入雲端檔案
                 const bodyData = {
-                    message: `Upload ${filename} via web interim storage`,
+                    message: `Upload ${filename} via web`,
                     content: base64Content
                 };
-                if (sha) bodyData.sha = sha; // 更新檔案時必填 sha
+                if (sha) bodyData.sha = sha;
 
                 const saveRes = await fetch(url, {
                     method: "PUT",
@@ -197,10 +130,8 @@
 
                 if (saveRes.ok) {
                     alert(`檔案 ${filename} 保存成功！`);
-                    // 成功後欄位復原與清空
                     filenameInput.value = "tmp.txt";
                     contentInput.value = "";
-                    // 重新載入列表
                     fetchFileList();
                 } else {
                     const errData = await saveRes.json();
@@ -211,43 +142,47 @@
             }
         }
 
-        // 讀取目錄文件清單並渲染
         async function fetchFileList() {
             const container = document.getElementById('listContainer');
             const url = `https://github.com{OWNER}/${REPO}/contents/${FOLDER_PATH}`;
             
             try {
-                // 獲取該目錄下的檔案，若有填 token 則帶上以防頻率限制
                 const token = getToken();
-                const headers = {};
+                const headers = { "Accept": "application/vnd.github.v3+json" };
                 if (token) headers["Authorization"] = `token ${token}`;
 
                 const response = await fetch(url, { headers });
+                
                 if (!response.ok) {
-                    container.innerHTML = "無法獲取雲端目錄，請檢查 Token 是否正確或該資料夾內是否有任何檔案。";
+                    if (response.status === 404) {
+                        container.innerHTML = `<div class="error-msg">❌ 錯誤 404：找不到雲端目錄！<br>原因：您的儲存庫庫裡還沒有資料夾 "${FOLDER_PATH}"，或者資料夾內是空的。請先隨便『保存』一個文本，目錄就會自動建立！</div>`;
+                    } else if (response.status === 403 || response.status === 429) {
+                        container.innerHTML = `<div class="error-msg">❌ 錯誤 403：API 讀取次數超限！<br>原因：未輸入 Token 的公開查詢次數已達上限。請在上方輸入您的『Token 驗證』即可解除限制。</div>`;
+                    } else if (response.status === 401) {
+                        container.innerHTML = `<div class="error-msg">❌ 錯誤 401：Token 無效或過期！<br>原因：您輸入的 Token 錯誤。請檢查是否有多貼空格或權限不足。</div>`;
+                    } else {
+                        container.innerHTML = `<div class="error-msg">❌ 載入失敗 (狀態碼: ${response.status})</div>`;
+                    }
                     return;
                 }
 
                 const files = await response.json();
-                if (files.length === 0) {
-                    container.innerHTML = "目前雲端目錄中沒有檔案。";
+                if (!Array.isArray(files) || files.length === 0) {
+                    container.innerHTML = "目前雲端目錄中沒有任何檔案。";
                     return;
                 }
 
-                // 清空清單並動態生成 DOM 節點
                 container.innerHTML = "";
                 files.forEach(file => {
                     if (file.type === "file") {
                         const item = document.createElement('div');
                         item.className = 'file-item';
 
-                        // 建立超連結，指向 paopaoloung.github.io/up/files/...
                         const link = document.createElement('a');
                         link.href = `https://${OWNER}.github.io/${FOLDER_PATH}/${file.name}`;
                         link.target = "_blank";
                         link.textContent = file.name;
 
-                        // 建立刪除按鈕
                         const delBtn = document.createElement('button');
                         delBtn.className = 'btn-delete';
                         delBtn.textContent = '刪除按鈕';
@@ -259,43 +194,36 @@
                     }
                 });
             } catch (error) {
-                container.innerHTML = `載入清單時發生錯誤：${error.message}`;
+                container.innerHTML = `<div class="error-msg">❌ 瀏覽器連線異常：${error.message}</div>`;
             }
         }
 
-        // 刪除按鈕功能
         async function deleteFile(filename, sha) {
             const token = getToken();
-            if (!token) {
-                alert("刪除檔案需要驗證身份，請先在上方『Token 驗證』填入 Token！");
-                return;
-            }
-
-            if (!confirm(`確定要刪除雲端上的檔案 ${filename} 嗎？`)) {
-                return;
-            }
+            if (!token) { alert("刪除檔案需要驗證身份，請先在上方填入 Token！"); return; }
+            if (!confirm(`確定要刪除雲端上的檔案 ${filename} 嗎？`)) return;
 
             const url = `https://github.com{OWNER}/${REPO}/contents/${FOLDER_PATH}/${filename}`;
-            const bodyData = {
-                message: `Delete ${filename} via web interim storage`,
-                sha: sha
-            };
+            const bodyData = { message: `Delete ${filename}`, sha: sha };
 
             try {
                 const response = await fetch(url, {
                     method: "DELETE",
-                    headers: {
-                        "Authorization": `token ${token}`,
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
                     body: JSON.stringify(bodyData)
                 });
 
                 if (response.ok) {
                     alert(`檔案 ${filename} 已成功從雲端刪除！`);
-                    fetchFileList(); // 刷新清單
+                    fetchFileList();
                 } else {
                     const errData = await response.json();
                     alert(`刪除失敗：${errData.message}`);
                 }
             } catch (error) {
+                alert(`刪除發生錯誤：${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
