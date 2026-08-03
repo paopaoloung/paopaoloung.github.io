@@ -1,269 +1,295 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端暫存文本區</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 0 15px; background: #f9f9f9; color: #333; }
-        .section { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        input[type="text"], input[type="password"], textarea { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        textarea { height: 150px; resize: vertical; }
-        button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #cccccc; cursor: not-allowed; }
-        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .file-link { color: #007bff; text-decoration: none; cursor: pointer; }
-        .file-link:hover { text-decoration: underline; }
-        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 12px; }
-        .btn-delete:hover { background: #bd2130; }
-        .status { font-size: 14px; color: #666; margin-top: 5px; min-height: 20px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>雲端暫存文本區</title>
+
+<style>
+body{
+    font-family:Arial;
+    margin:20px;
+}
+
+input{
+    width:100%;
+    padding:8px;
+    margin:5px 0;
+}
+
+textarea{
+    width:100%;
+    height:300px;
+    padding:10px;
+}
+
+button{
+    padding:8px 15px;
+    margin:5px;
+    cursor:pointer;
+}
+
+.file-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:5px 0;
+}
+
+a{
+    text-decoration:none;
+}
+</style>
 </head>
+
 <body>
 
-    <h2>☁️ 雲端暫存文本區</h2>
+<h2>雲端暫存文本區</h2>
 
-    <!-- 區塊 A: 權限認證 (帳號與庫名已內嵌隱藏) -->
-    <div class="section">
-        <label>GitHub Personal Access Token (Token):</label>
-        <input type="password" id="inputA" placeholder="請輸入具有 Repo 權限的 Token">
-        <button id="buttonA">保存 Token</button>
-        <div id="configStatus" class="status"></div>
-    </div>
+<div>
+    GitHub Token
+    <input id="tokenInput" type="password">
+    <button onclick="saveToken()">保存Token</button>
+</div>
 
-    <!-- 區塊 B & C: 文本編輯區 -->
-    <div class="section">
-        <label>檔案名稱:</label>
-        <input type="text" id="inputB" value="tmp.txt">
-        <label>文本內容:</label>
-        <textarea id="inputC" placeholder="請輸入要傳遞的文字內容..."></textarea>
-        <button id="buttonB">保存內容</button>
-        <div id="actionStatus" class="status"></div>
-    </div>
+<div>
+    Repo (格式: username/repo)
+    <input id="repoInput" value="paopaoloung/up">
+</div>
 
-    <!-- 區塊 D: 檔案清單 -->
-    <div class="section">
-        <h3>📂 tmpTxt 檔案清單</h3>
-        <button id="btnRefresh" style="background:#28a745; margin-bottom:10px;">手動重新整理</button>
-        <div id="fileList">載入中或未設定 Token...</div>
-    </div>
+<div>
+    檔案名稱
+    <input id="fileName" value="tmp.txt">
+</div>
 
-    <script>
-        // ==================== 🛠️ 請在此處填入您的設定 ====================
-        const GH_USERNAME = 'paopaoloung'; 
-        const GH_REPO = 'up';
-        // ===============================================================
+<div>
+    <textarea id="content"></textarea>
+</div>
 
-        const FOLDER_NAME = 'tmpTxt';
-        let fileShaMap = {}; // 用於紀錄每個檔案的 SHA，刪除時需要
+<button onclick="saveFile()">保存內容</button>
 
-        // 頁面載入時自動填入已儲存的 Token
-        window.onload = function() {
-            if (localStorage.getItem('gh_token')) {
-                document.getElementById('inputA').value = localStorage.getItem('gh_token');
-                fetchFileList();
-            }
+<hr>
+
+<h3>tmpTxt 檔案清單</h3>
+
+<div id="fileList"></div>
+
+<script>
+
+const tokenInput=document.getElementById("tokenInput");
+const repoInput=document.getElementById("repoInput");
+const fileNameInput=document.getElementById("fileName");
+const contentInput=document.getElementById("content");
+
+window.onload=()=>{
+    tokenInput.value=localStorage.getItem("github_token")||"";
+    repoInput.value=localStorage.getItem("repo_name")||"";
+    loadFileList();
+}
+
+function saveToken(){
+    localStorage.setItem(
+        "github_token",
+        tokenInput.value.trim()
+    );
+
+    localStorage.setItem(
+        "repo_name",
+        repoInput.value.trim()
+    );
+
+    alert("Token已保存");
+}
+
+function getHeaders(){
+    return {
+        Authorization:`token ${tokenInput.value.trim()}`,
+        Accept:'application/vnd.github+json'
+    };
+}
+
+async function saveFile(){
+
+    const repo=repoInput.value.trim();
+    const filename=fileNameInput.value.trim();
+    const content=contentInput.value;
+
+    const path=`tmpTxt/${filename}`;
+
+    let sha=null;
+
+    const check=await fetch(
+        `https://api.github.com/repos/${repo}/contents/${path}`,
+        {
+            headers:getHeaders()
+        }
+    );
+
+    if(check.ok){
+        const data=await check.json();
+        sha=data.sha;
+    }
+
+    const body={
+        message:`save ${filename}`,
+        content:btoa(
+            unescape(
+                encodeURIComponent(content)
+            )
+        )
+    };
+
+    if(sha){
+        body.sha=sha;
+    }
+
+    const res=await fetch(
+        `https://api.github.com/repos/${repo}/contents/${path}`,
+        {
+            method:'PUT',
+            headers:{
+                ...getHeaders(),
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify(body)
+        }
+    );
+
+    if(res.ok){
+
+        fileNameInput.value="tmp.txt";
+        contentInput.value="";
+
+        alert("保存成功");
+
+        setTimeout(()=>{
+            loadFileList();
+        },5000);
+
+    }else{
+        const err=await res.text();
+        alert(err);
+    }
+}
+
+async function loadFileList(){
+
+    const repo=repoInput.value.trim();
+
+    if(!repo) return;
+
+    const res=await fetch(
+        `https://api.github.com/repos/${repo}/contents/tmpTxt`,
+        {
+            headers:getHeaders()
+        }
+    );
+
+    if(!res.ok){
+        return;
+    }
+
+    const files=await res.json();
+
+    const div=document.getElementById("fileList");
+
+    div.innerHTML="";
+
+    files
+    .filter(f=>f.type==="file")
+    .sort((a,b)=>a.name.localeCompare(b.name))
+    .forEach(file=>{
+
+        const row=document.createElement("div");
+        row.className="file-row";
+
+        const link=document.createElement("a");
+        link.href="#";
+        link.textContent=file.name;
+
+        link.onclick=(e)=>{
+            e.preventDefault();
+            openFile(file.name);
         };
 
-        // Button A: 保存 Token 到本地 LocalStorage
-        document.getElementById('buttonA').onclick = function() {
-            const token = document.getElementById('inputA').value.trim();
+        const del=document.createElement("button");
+        del.innerHTML="刪除";
 
-            if (!token) {
-                alert('請填寫 Token！');
-                return;
-            }
-
-            localStorage.setItem('gh_token', token);
-            document.getElementById('configStatus').innerText = '✅ Token 已成功儲存至本地瀏覽器！';
-            fetchFileList();
+        del.onclick=()=>{
+            deleteFile(file.name);
         };
 
-        // 取得 GitHub API 標頭
-        function getHeaders() {
-            const token = localStorage.getItem('gh_token');
-            return {
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            };
-        }
+        row.appendChild(link);
+        row.appendChild(del);
 
-        // 取得儲存庫基本 URL
-        function getRepoUrl() {
-            return `https://github.com{GH_USERNAME}/${GH_REPO}/contents`;
-        }
+        div.appendChild(row);
 
-        // Button B: 保存文本內容至 GitHub
-        document.getElementById('buttonB').onclick = async function() {
-            const token = localStorage.getItem('gh_token');
-            if (!token) { return alert('請先設定並保存您的 GitHub Token！'); }
-
-            const fileName = document.getElementById('inputB').value.trim();
-            const content = document.getElementById('inputC').value;
-            const actionStatus = document.getElementById('actionStatus');
-
-            if (!fileName) { return alert('檔案名稱不能為空！'); }
-
-            actionStatus.innerText = '⏳ 正在上傳至 GitHub...';
-            document.getElementById('buttonB').disabled = true;
-
-            try {
-                const url = `${getRepoUrl()}/${FOLDER_NAME}/${fileName}`;
-                
-                // 檢查檔案是否已存在，若存在需要獲取其 SHA 才能覆蓋
-                let sha = null;
-                const checkRes = await fetch(url, { headers: getHeaders() });
-                if (checkRes.ok) {
-                    const checkData = await checkRes.json();
-                    sha = checkData.sha;
-                }
-
-                // 將內容轉為 UTF-8 的 Base64 編碼
-                const utf8Bytes = new TextEncoder().encode(content);
-                const base64Content = btoa(String.fromCharCode(...utf8Bytes));
-
-                const bodyData = {
-                    message: `Upload ${fileName} via Cloud Temp Text`,
-                    content: base64Content
-                };
-                if (sha) bodyData.sha = sha; // 覆蓋檔案必須傳入 sha
-
-                const saveRes = await fetch(url, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify(bodyData)
-                });
-
-                if (saveRes.ok) {
-                    actionStatus.innerText = '✅ 儲存成功！5秒後重新整理清單...';
-                    // 1. inputB 保持不變
-                    // 2. 清空 inputC 內容
-                    document.getElementById('inputC').value = '';
-                    
-                    // 3. 5 秒後刷新清單
-                    setTimeout(() => {
-                        fetchFileList();
-                        actionStatus.innerText = '';
-                    }, 5000);
-                } else {
-                    const errData = await saveRes.json();
-                    actionStatus.innerText = `❌ 儲存失敗: ${errData.message}`;
-                }
-            } catch (error) {
-                actionStatus.innerText = `❌ 發生錯誤: ${error.message}`;
-            } finally {
-                document.getElementById('buttonB').disabled = false;
-            }
-        };
-
-        // 讀取檔案清單
-        async function fetchFileList() {
-            const fileListDiv = document.getElementById('fileList');
-            if (!localStorage.getItem('gh_token')) {
-                fileListDiv.innerText = '請先完成上方設定以載入清單。';
-                return;
-            }
-
-            try {
-                const url = `${getRepoUrl()}/${FOLDER_NAME}`;
-                const res = await fetch(url, { headers: getHeaders() });
-
-                if (res.status === 404) {
-                    fileListDiv.innerText = '📁 目前資料夾內無任何檔案 (或資料夾尚未建立)。';
-                    return;
-                }
-
-                if (!res.ok) { throw new Error('無法獲取清單'); }
-
-                const files = await res.json();
-                fileListDiv.innerHTML = '';
-                fileShaMap = {}; // 清空舊的 SHA 對應表
-
-                if (!Array.isArray(files) || files.length === 0) {
-                    fileListDiv.innerText = '📁 目前無任何檔案。';
-                    return;
-                }
-
-                files.forEach(file => {
-                    if (file.type === 'file') {
-                        fileShaMap[file.name] = file.sha; // 紀錄 SHA
-
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'file-item';
-
-                        // 超連結點擊讀取
-                        const link = document.createElement('a');
-                        link.className = 'file-link';
-                        link.innerText = file.name;
-                        link.onclick = () => loadFileContent(file.name, file.download_url);
-
-                        // 刪除按鈕
-                        const delBtn = document.createElement('button');
-                        delBtn.className = 'btn-delete';
-                        delBtn.innerText = '刪除';
-                        delBtn.onclick = () => deleteFile(file.name);
-
-                        itemDiv.appendChild(link);
-                        itemDiv.appendChild(delBtn);
-                        fileListDiv.appendChild(itemDiv);
-                    }
-                });
-            } catch (error) {
-                fileListDiv.innerText = `❌ 載入清單失敗: ${error.message}`;
-            }
-        }
-
-        // 點擊超連結：讀取檔案內容並填入輸入框
-        async function loadFileContent(fileName, downloadUrl) {
-            const inputB = document.getElementById('inputB');
-            const inputC = document.getElementById('inputC');
-            
-            inputC.value = '⏳ 正在讀取內容...';
-            // 1. inputB 內容改為其檔案名稱
-            inputB.value = fileName;
-
-            try {
-                // 加上快取破壞防止瀏覽器讀到舊資料
-                const res = await fetch(`${downloadUrl}?t=${new Date().getTime()}`);
-                if (!res.ok) throw new Error('讀取文字失敗');
-                const text = await res.text();
-                
-                // 2. inputC 顯示檔案內容
-                inputC.value = text;
-            } catch (error) {
-                inputC.value = `❌ 讀取失敗: ${error.message}`;
-            }
-        }
-
-        // 刪除檔案功能
-        async function deleteFile(fileName) {
-            if (!confirm(`確定要刪除 ${fileName} 嗎？`)) return;
-
-            const url = `${getRepoUrl()}/${FOLDER_NAME}/${fileName}`;
-            const sha = fileShaMap[fileName];
-
-            try {
-                const res = await fetch(url, {
-                    method: 'DELETE',
-                    headers: getHeaders(),
-                    body: JSON.stringify({
-                        message: `Delete ${fileName} via Cloud Temp Text`,
-                        sha: sha
-})
-});
-if (res.ok) {
-alert(${fileName} 刪除成功！);
-fetchFileList(); // 立即重新整理清單
-} else {
-const err = await res.json();
-alert(❌ 刪除失敗: ${err.message});
+    });
 }
-} catch (error) {
-alert(❌ 錯誤: ${error.message});
-}
-}
-// 手動刷新按鈕
-document.getElementById('btnRefresh').onclick = fetchFileList;
 
+async function openFile(filename){
+
+    const repo=repoInput.value.trim();
+
+    const res=await fetch(
+        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
+        {
+            headers:getHeaders()
+        }
+    );
+
+    const data=await res.json();
+
+    const text=decodeURIComponent(
+        escape(
+            atob(data.content.replace(/\n/g,''))
+        )
+    );
+
+    fileNameInput.value=filename;
+    contentInput.value=text;
+}
+
+async function deleteFile(filename){
+
+    if(!confirm(`刪除 ${filename} ?`)){
+        return;
+    }
+
+    const repo=repoInput.value.trim();
+
+    const res1=await fetch(
+        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
+        {
+            headers:getHeaders()
+        }
+    );
+
+    const data=await res1.json();
+
+    const res2=await fetch(
+        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
+        {
+            method:'DELETE',
+            headers:{
+                ...getHeaders(),
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify({
+                message:`delete ${filename}`,
+                sha:data.sha
+            })
+        }
+    );
+
+    if(res2.ok){
+        loadFileList();
+    }else{
+        alert("刪除失敗");
+    }
+}
+
+</script>
+
+</body>
+</html>
