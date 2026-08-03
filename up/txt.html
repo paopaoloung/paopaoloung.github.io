@@ -28,6 +28,8 @@ Token-hRkyLmRfAAA：
 
 <button onclick="saveFile()">保存內容</button>
 <button onclick="loadFiles()">刷新檔案列表</button>
+<button onclick="copyContent()">复制內容</button>
+
 
 <hr>
 
@@ -214,6 +216,19 @@ async function deleteFile(name){
         loadFiles();
     }else{
         alert("刪除失敗");
+    }
+}
+
+// --复制按鈕--
+async function copyContent(){
+    content.select();
+    content.setSelectionRange(0, 999999);
+    try{
+        await navigator.clipboard.writeText(content.value);
+        alert("內容已复制");
+    }catch(err){
+        document.execCommand("copy");
+        alert("內容已复制");
     }
 }
 
