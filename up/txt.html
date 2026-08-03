@@ -15,10 +15,10 @@ a{text-decoration:none}
 </head>
 <body>
 
-<h2>雲端暫存文本區</h2>
+<h2>⛅泡泡龍-雲端暫存文本區⛅</h2>
 
-Token：
-<input id="token" type="password" placeholder="github_pat_xxx">
+Token-hRkyLmRfAAA：
+<input id="token" value="github_pat_11A7UN⬛0pRoZgXVxrIA6_I6H3kmaI48xP8nX9HO6ssMpu4w43kX67yP1jHgPh5hUL32IG2TK3qZHi2fB">
 <button onclick="saveToken()">保存Token</button>
 
 <hr>
@@ -39,16 +39,29 @@ Token：
 <script>
 
 const REPO="paopaoloung/paopaoloung.github.io";
+const FOLDER="up/${FOLDER}";
 
 const token=document.getElementById("token");
 const fileName=document.getElementById("fileName");
 const content=document.getElementById("content");
 const files=document.getElementById("files");
 
+
+/* --
 window.onload=()=>{
     token.value=localStorage.getItem("github_token")||"";
     loadFiles();
 };
+
+-- */
+window.onload=()=>{
+    token.value=
+        localStorage.getItem("github_token")
+        || token.value;
+
+    loadFiles();
+};
+
 
 function saveToken(){
     localStorage.setItem("github_token",token.value.trim());
@@ -79,7 +92,7 @@ async function saveFile(){
     }
 
     let sha=null;
-    const path=`tmpTxt/${fileName.value.trim()}`;
+    const path=`${FOLDER}/${fileName.value.trim()}`;
 
     const check=await fetch(
         `https://api.github.com/repos/${REPO}/contents/${path}`,
@@ -98,7 +111,7 @@ async function saveFile(){
     if(sha) body.sha=sha;
 
     const res=await fetch(
-        `https://api.github.com/repos/${REPO}/contents/${path}`,
+       `https://api.github.com/repos/${REPO}/contents/${FOLDER}`,
         {
             method:"PUT",
             headers:{...headers(),"Content-Type":"application/json"},
@@ -121,7 +134,7 @@ async function loadFiles(){
     files.innerHTML="載入中...";
 
     const res=await fetch(
-        `https://api.github.com/repos/${REPO}/contents/tmpTxt`,
+        `https://api.github.com/repos/${REPO}/contents/${FOLDER}`,
         {headers:headers()}
     );
 
@@ -161,7 +174,7 @@ async function loadFiles(){
 async function openFile(name){
 
     const res=await fetch(
-        `https://api.github.com/repos/${REPO}/contents/tmpTxt/${name}`,
+        `https://api.github.com/repos/${REPO}/contents/${FOLDER}/${name}`,
         {headers:headers()}
     );
 
@@ -181,14 +194,14 @@ async function deleteFile(name){
     if(!confirm(`刪除 ${name} ?`)) return;
 
     const info=await fetch(
-        `https://api.github.com/repos/${REPO}/contents/tmpTxt/${name}`,
+        `https://api.github.com/repos/${REPO}/contents/${FOLDER}/${name}`,
         {headers:headers()}
     );
 
     const data=await info.json();
 
     const res=await fetch(
-        `https://api.github.com/repos/${REPO}/contents/tmpTxt/${name}`,
+        `https://api.github.com/repos/${REPO}/contents/${FOLDER}/${name}`,
         {
             method:"DELETE",
             headers:{...headers(),"Content-Type":"application/json"},
