@@ -39,7 +39,7 @@ Token-hRkyLmRfAAA：
 <script>
 
 const REPO="paopaoloung/paopaoloung.github.io";
-const FOLDER="up/${FOLDER}";
+const FOLDER="up/tmpTxt";
 
 const token=document.getElementById("token");
 const fileName=document.getElementById("fileName");
@@ -110,14 +110,14 @@ async function saveFile(){
 
     if(sha) body.sha=sha;
 
-    const res=await fetch(
-       `https://api.github.com/repos/${REPO}/contents/${FOLDER}`,
-        {
-            method:"PUT",
-            headers:{...headers(),"Content-Type":"application/json"},
-            body:JSON.stringify(body)
-        }
-    );
+const res=await fetch(
+    `https://api.github.com/repos/${REPO}/contents/${path}`,
+    {
+        method:"PUT",
+        headers:{...headers(),"Content-Type":"application/json"},
+        body:JSON.stringify(body)
+    }
+);
 
     if(res.ok){
         alert("保存成功");
