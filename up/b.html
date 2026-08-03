@@ -3,29 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>雲端暫存文本區</title>
 
 <style>
+
 body{
-    font-family:Arial;
+    font-family:Arial,sans-serif;
     margin:20px;
 }
 
 input{
     width:100%;
     padding:8px;
+    box-sizing:border-box;
     margin:5px 0;
 }
 
 textarea{
     width:100%;
-    height:300px;
+    height:350px;
     padding:10px;
+    box-sizing:border-box;
 }
 
 button{
     padding:8px 15px;
-    margin:5px;
+    margin:5px 3px;
     cursor:pointer;
 }
 
@@ -36,10 +40,14 @@ button{
     margin:5px 0;
 }
 
-a{
+.file-link{
     text-decoration:none;
+    color:blue;
+    cursor:pointer;
 }
+
 </style>
+
 </head>
 
 <body>
@@ -47,26 +55,47 @@ a{
 <h2>雲端暫存文本區</h2>
 
 <div>
-    GitHub Token
-    <input id="tokenInput" type="password">
-    <button onclick="saveToken()">保存Token</button>
+
+Token：
+
+<input
+id="tokenInput"
+type="password"
+placeholder="github_pat_xxxxxxx">
+
+<button onclick="saveToken()">
+保存Token
+</button>
+
+</div>
+
+<hr>
+
+<div>
+
+檔案名稱：
+
+<input
+id="fileName"
+value="tmp.txt">
+
 </div>
 
 <div>
-    Repo (格式: username/repo)
-    <input id="repoInput" value="paopaoloung/up">
+
+<textarea
+id="content"
+placeholder="請輸入內容"></textarea>
+
 </div>
 
-<div>
-    檔案名稱
-    <input id="fileName" value="tmp.txt">
-</div>
+<button onclick="saveFile()">
+保存內容
+</button>
 
-<div>
-    <textarea id="content"></textarea>
-</div>
-
-<button onclick="saveFile()">保存內容</button>
+<button onclick="loadFileList()">
+刷新檔案清單
+</button>
 
 <hr>
 
@@ -76,220 +105,116 @@ a{
 
 <script>
 
-const tokenInput=document.getElementById("tokenInput");
-const repoInput=document.getElementById("repoInput");
-const fileNameInput=document.getElementById("fileName");
-const contentInput=document.getElementById("content");
+const REPO =
+"paopaoloung/paopaoloung.github.io";
 
-window.onload=()=>{
-    tokenInput.value=localStorage.getItem("github_token")||"";
-    repoInput.value=localStorage.getItem("repo_name")||"";
+const tokenInput =
+document.getElementById("tokenInput");
+
+const fileNameInput =
+document.getElementById("fileName");
+
+const contentInput =
+document.getElementById("content");
+
+window.onload = () => {
+
+    tokenInput.value =
+    localStorage.getItem("github_token")
+    || "";
+
     loadFileList();
-}
+};
 
 function saveToken(){
+
     localStorage.setItem(
         "github_token",
         tokenInput.value.trim()
-    );
-
-    localStorage.setItem(
-        "repo_name",
-        repoInput.value.trim()
     );
 
     alert("Token已保存");
 }
 
 function getHeaders(){
+
     return {
-        Authorization:`token ${tokenInput.value.trim()}`,
-        Accept:'application/vnd.github+json'
+
+        "Authorization":
+        `Bearer ${tokenInput.value.trim()}`,
+
+        "Accept":
+        "application/vnd.github+json",
+
+        "X-GitHub-Api-Version":
+        "2022-11-28"
     };
+}
+
+function utf8ToBase64(str){
+
+    return btoa(
+        unescape(
+            encodeURIComponent(str)
+        )
+    );
+}
+
+function base64ToUtf8(str){
+
+    return decodeURIComponent(
+        escape(
+            atob(str)
+        )
+    );
 }
 
 async function saveFile(){
 
-    const repo=repoInput.value.trim();
-    const filename=fileNameInput.value.trim();
-    const content=contentInput.value;
+    const filename =
+    fileNameInput.value.trim();
 
-    const path=`tmpTxt/${filename}`;
+    const content =
+    contentInput.value;
 
-    let sha=null;
+    const path =
+    `tmpTxt/${filename}`;
 
-    const check=await fetch(
-        `https://api.github.com/repos/${repo}/contents/${path}`,
+    let sha = null;
+
+    try{
+
+        const check =
+        await fetch(
+        `https://api.github.com/repos/${REPO}/contents/${path}`,
         {
             headers:getHeaders()
+        });
+
+        if(check.ok){
+
+            const data =
+            await check.json();
+
+            sha = data.sha;
         }
-    );
 
-    if(check.ok){
-        const data=await check.json();
-        sha=data.sha;
-    }
+        const body = {
 
-    const body={
-        message:`save ${filename}`,
-        content:btoa(
-            unescape(
-                encodeURIComponent(content)
-            )
-        )
-    };
+            message:
+            `save ${filename}`,
 
-    if(sha){
-        body.sha=sha;
-    }
-
-    const res=await fetch(
-        `https://api.github.com/repos/${repo}/contents/${path}`,
-        {
-            method:'PUT',
-            headers:{
-                ...getHeaders(),
-                'Content-Type':'application/json'
-            },
-            body:JSON.stringify(body)
-        }
-    );
-
-    if(res.ok){
-
-        fileNameInput.value="tmp.txt";
-        contentInput.value="";
-
-        alert("保存成功");
-
-        setTimeout(()=>{
-            loadFileList();
-        },5000);
-
-    }else{
-        const err=await res.text();
-        alert(err);
-    }
-}
-
-async function loadFileList(){
-
-    const repo=repoInput.value.trim();
-
-    if(!repo) return;
-
-    const res=await fetch(
-        `https://api.github.com/repos/${repo}/contents/tmpTxt`,
-        {
-            headers:getHeaders()
-        }
-    );
-
-    if(!res.ok){
-        return;
-    }
-
-    const files=await res.json();
-
-    const div=document.getElementById("fileList");
-
-    div.innerHTML="";
-
-    files
-    .filter(f=>f.type==="file")
-    .sort((a,b)=>a.name.localeCompare(b.name))
-    .forEach(file=>{
-
-        const row=document.createElement("div");
-        row.className="file-row";
-
-        const link=document.createElement("a");
-        link.href="#";
-        link.textContent=file.name;
-
-        link.onclick=(e)=>{
-            e.preventDefault();
-            openFile(file.name);
+            content:
+            utf8ToBase64(content)
         };
 
-        const del=document.createElement("button");
-        del.innerHTML="刪除";
+        if(sha){
 
-        del.onclick=()=>{
-            deleteFile(file.name);
-        };
-
-        row.appendChild(link);
-        row.appendChild(del);
-
-        div.appendChild(row);
-
-    });
-}
-
-async function openFile(filename){
-
-    const repo=repoInput.value.trim();
-
-    const res=await fetch(
-        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
-        {
-            headers:getHeaders()
+            body.sha = sha;
         }
-    );
 
-    const data=await res.json();
-
-    const text=decodeURIComponent(
-        escape(
-            atob(data.content.replace(/\n/g,''))
-        )
-    );
-
-    fileNameInput.value=filename;
-    contentInput.value=text;
-}
-
-async function deleteFile(filename){
-
-    if(!confirm(`刪除 ${filename} ?`)){
-        return;
-    }
-
-    const repo=repoInput.value.trim();
-
-    const res1=await fetch(
-        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
+        const saveResult =
+        await fetch(
+        `https://api.github.com/repos/${REPO}/contents/${path}`,
         {
-            headers:getHeaders()
-        }
-    );
-
-    const data=await res1.json();
-
-    const res2=await fetch(
-        `https://api.github.com/repos/${repo}/contents/tmpTxt/${filename}`,
-        {
-            method:'DELETE',
-            headers:{
-                ...getHeaders(),
-                'Content-Type':'application/json'
-            },
-            body:JSON.stringify({
-                message:`delete ${filename}`,
-                sha:data.sha
-            })
-        }
-    );
-
-    if(res2.ok){
-        loadFileList();
-    }else{
-        alert("刪除失敗");
-    }
-}
-
-</script>
-
-</body>
-</html>
+      
