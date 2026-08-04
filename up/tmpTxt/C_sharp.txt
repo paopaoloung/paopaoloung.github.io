@@ -1,0 +1,6 @@
+namespace ≈ 资料夹（根目录）——windows
+class ≈ 软件安装包/zip ——office/PS
+object ≈ 解压后实际软件——readme.txt/word.exe/setting.ini等
+
+
+
