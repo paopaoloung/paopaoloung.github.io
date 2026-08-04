@@ -3,6 +3,12 @@ class ≈ 软件安装包/zip ——office/PS
 object ≈ 解压后实际软件——readme.txt/word.exe/setting.ini等
 
 static（靜態）--想成：全体共用的屬性
+标识符就是你给程序里的东西起的名字；
+  • 不能与class同名；
+  • 不能使用關鍵詞，除非加@；if✖️，@if✔️
+
+
+
 
 
 
