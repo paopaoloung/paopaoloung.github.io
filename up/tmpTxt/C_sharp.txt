@@ -11,6 +11,8 @@ static（靜態）--想成：全体共用的屬性
 float  ≈ 普通小数（約小數點後7位）
 double ≈ 更精确的小数（可存15-16位）
 
+string str = @"C:\Windows";
+[@:逐字字符串-引號里的全是字符]
 
-
-
+string str = "C:\\Windows";
+[\:轉義符 將\原文輸出]
