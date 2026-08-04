@@ -1,6 +1,8 @@
-namespace ≈ 资料夹（根目录）——windows
+namespace ≈ 開新资料夹
 class ≈ 软件安装包/zip ——office/PS
 object ≈ 解压后实际软件——readme.txt/word.exe/setting.ini等
+
+static（靜態）--想成：全体共用的屬性
 
 
 
