@@ -2,7 +2,7 @@ namespace ≈ 開新资料夹
 class ≈ 软件安装包/zip ——office/PS
 object ≈ 解压后实际软件——readme.txt/word.exe/setting.ini等
 
-static（靜態）--想成：全体共用的屬性
+static（靜態）--想成：全体共用的屬性；
 标识符就是你给程序里的东西起的名字；
   • 不能与class同名；
   • 不能使用關鍵詞，除非加@；if✖️，@if✔️
@@ -43,6 +43,26 @@ change(&a);  //把a的内存地址扔进去更改
 int i = 1000
 byte b = (byte)i; //等号左右byte相当于单位，必须一样
 当int转byte时：结果=原数÷256 的[余数]
+
+
+char和string区别？
+char：单个字符；string：字符串（一段文字）
+char c = 'A';
+string s = "A";
+看起来一样，但实际上不同：
+  •'A' → 一个字符
+  •"A" → 长度为 1 的字符串
+
+
+
+
+
+
+
+
+
+
+
 
 
 
