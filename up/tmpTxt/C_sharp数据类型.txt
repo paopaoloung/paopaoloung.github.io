@@ -1,0 +1,6 @@
+
+
+int    存整数
+float  存小数
+char   存一个字
+string 存一句话
