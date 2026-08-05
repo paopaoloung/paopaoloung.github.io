@@ -12,6 +12,30 @@ button{padding:8px 15px;margin:3px;cursor:pointer}
 .row{display:flex;align-items:center;gap:10px;margin:5px 0}
 .unshow-txt { color: #fff; font-size: 1.2em; margin: -4px 0 8px; }
 a{text-decoration:none}
+
+/* 讓每一行變成橫向排列，且把左右元素推到最兩端 */
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #eee; /* 可選：加一條淡淡的分隔線 */
+}
+
+/* 防呆設計：讓刪除按鈕呈現紅色醒目樣式 */
+.row button {
+    color: #ffffff;
+    background-color: #d9383a;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.row button:hover {
+    background-color: #b52a2c; /* 滑鼠移上去時變深色 */
+}
+
 </style>
 </head>
 <body>
