@@ -319,7 +319,7 @@ return;
         // 💡 終極解決方案：建立一個完全透明、看不到的 <iframe> 來強制瀏覽器加載網址
         // 這個方法等同於瀏覽器在背景幫您「打開」了那個網址，但完全看不到，100% 繞過所有跨網域 (CORS) 阻擋
         let iframe = document.createElement('iframe');
-        iframe.style.display = 'none'; // 隱藏起來不影響畫面
+        // iframe.style.display = 'none'; // 隱藏起來不影響畫面
         iframe.src = gasUrl + "&t=" + new Date().getTime(); // 加上時間戳防止快取舊資料
         
         document.body.appendChild(iframe); // 將其加入網頁，強迫 Chrome 立刻發送請求
