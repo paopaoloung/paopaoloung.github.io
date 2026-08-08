@@ -140,13 +140,21 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     let currentPlayer = urlParams.get('p') || "1";
-    
     playerSelect.value = currentPlayer;
+
+
+
+    // localStorage.setItem("currentPlayer", currentPlayer);
 
     function switchPlayer(playerVal) {
         window.location.search = `?p=${playerVal}`;
+        localStorage.setItem("currentPlayer", playerVal
     }
 
+
+
+
+    
     async function fetchFromSheet() {
         try {
             const response = await fetch(`${API_URL}?p=${currentPlayer}`);
@@ -246,7 +254,47 @@ ndef.onreading = async (event) => {
   for (const record of event.message.records) {
     if (record.recordType === "text") {
       const tagValue = decoder.decode(record.data);
-      
+
+
+
+
+      if (tagValue.startsWith("rent_")) {
+          const parts = tagValue.split("_");
+const amount = Number(parts[1]);
+const owner = parts[2].replace("user", "");
+const currentPlayer = localStorage.getItem("currentPlayer");
+if (currentPlayer === owner) {
+    alert("自己土地，不需支付租金");
+    return;
+}
+
+try {
+    await fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            action: "pay_owner",
+            p: currentPlayer,
+            targetPlayer: owner,
+            amount: amount
+        })
+    });
+
+    alert("支付租金成功\n" + amount);
+    await fetchFromSheet();
+} catch (err) {
+    alert("支付租金失敗");
+}
+return;
+}
+
+
+
+
+
+          
       // 偵測晶片內是否含有關鍵字
       if (tagValue.includes("SET_POOL_2000000")) {
         
