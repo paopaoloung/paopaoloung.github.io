@@ -271,9 +271,20 @@ if (currentPlayer === owner) {
 try {
     await fetch(API_URL, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+
+await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+        action: "pay_owner",
+        p: currentPlayer,
+        targetPlayer: owner,
+        amount: amount
+    })
+});
+
+
+
+        
         body: JSON.stringify({
             action: "pay_owner",
             p: currentPlayer,
@@ -285,10 +296,8 @@ try {
     alert("支付租金成功\n" + amount);
     await fetchFromSheet();
 } catch (err) {
-    alert("currentPlayer="+currentPlayer);
-    alert("owner="+owner);
-    alert("amount="+amount);
-    alert("支付租金失敗");
+    alert("錯誤:" + err);
+    console.log(err);
 }
 return;
 }
