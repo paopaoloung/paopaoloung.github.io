@@ -147,8 +147,8 @@
     // localStorage.setItem("currentPlayer", currentPlayer);
 
     function switchPlayer(playerVal) {
+        localStorage.setItem("currentPlayer", playerVal);
         window.location.search = `?p=${playerVal}`;
-        localStorage.setItem("currentPlayer", playerVal
     }
 
 
