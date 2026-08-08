@@ -285,6 +285,9 @@ try {
     alert("支付租金成功\n" + amount);
     await fetchFromSheet();
 } catch (err) {
+    alert("currentPlayer="+currentPlayer);
+    alert("owner="+owner);
+    alert("amount="+amount);
     alert("支付租金失敗");
 }
 return;
