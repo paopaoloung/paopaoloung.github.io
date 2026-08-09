@@ -7,7 +7,21 @@
 
     <title>大富翁財富計算工具</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; background-color: #f4f4f9; }
+    /*    body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; background-color: #f4f4f9; }  */
+        /* 防止手機瀏覽器往下滑動時，網頁頂部或底部出現多餘的白色彈性空白 */
+        html, body { margin: 0; padding: 0; width: 100%; overscroll-behavior: none; }
+
+
+        /* 使用 border-box 可以確保 padding 和邊框不會把網頁撐寬 */
+        body { box-sizing: border-box; overflow-x: hidden; }
+         /* 🛑 萬一內容不小心超出，直接隱藏左右滾動條，保持畫面乾淨 */
+
+
+        /* 讓所有元件預設都套用 border-box 防撐寬 */
+        *, *:before, *:after { box-sizing: inherit; }
+
+
+        
         .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .text-display { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333; }  
 
@@ -28,7 +42,7 @@
         .btn-refresh { background-color: #4CAF50; color: white; }
         .btn-unit { background-color: #2196F3; color: white; display: inline-block; width: 48%; }
         .btn-action { background-color: #FF9800; color: white; }
-        .btn-danger { background-color: #f44336; color: white; }
+        .btn-danger { background-color: #f44336; color: white; hight: 20%; }
         .unit-container { display: flex; justify-content: space-between; }
 
         /* 🎯 專屬修改：只針對用戶資產值這一行放大並改為橘底白字 */
