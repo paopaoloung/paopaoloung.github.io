@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    // <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- meta name="viewport" content="width=device-width, initial-scale=1.0" -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <title>大富翁財富計算工具</title>
@@ -113,6 +113,11 @@
     <!-- 遊戲功能按鈕 -->
     <!-- (按鈕0) 付租金 -->
     <button class="btn-danger" onclick="handleAction('pay_rent')">付租金 (➖入現金池)</button>
+
+    <!-- 在大富翁網頁面板合適的位置加入此按鈕 -->
+    <button id="nfcScanBtn" style="padding: 12px 24px; font-size: 16px; background-color: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+  📡 感應 NFC 現金池晶片</button>
+    
     <!-- (按鈕9) 罸款/買地 -->
     <button class="btn-danger" onclick="handleAction('fine_or_buy')">罸款/買地 (純扣錢)</button>
 </div>
@@ -126,10 +131,7 @@
 </div>
 
 
-<!-- 在大富翁網頁面板合適的位置加入此按鈕 -->
-<button id="nfcScanBtn" style="padding: 12px 24px; font-size: 16px; background-color: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-  📡 感應 NFC 現金池晶片
-</button>
+
 
 
 <div class="info-box">
