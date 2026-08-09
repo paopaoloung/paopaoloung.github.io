@@ -78,7 +78,7 @@
     </style>
 </head>
 <body>
-
+<div class="main-container">
 <div class="container">
     <!-- 快捷切換身份選單 -->
     <select class="player-selector" id="player-select" onchange="switchPlayer(this.value)">
@@ -135,7 +135,13 @@
     <!-- (按鈕9) 罸款/買地 -->
     <button class="btn-danger" onclick="handleAction('fine_or_buy')">罸款/買地 (純扣錢)</button>
 </div>
+</div>
 
+<style>
+.main-container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; }
+</style>
+
+    
 <!-- 彈出視窗 (按鈕5) -->
 <div class="modal" id="success-modal">
     <div class="modal-content">
