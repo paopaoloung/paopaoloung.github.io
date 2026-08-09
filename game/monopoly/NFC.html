@@ -131,7 +131,7 @@
 
 
 <div class="info-box">
-<a href="banker.html">📖 </a>遊戲說明：<br>
+<span id="secretLink" style="color: inherit; cursor: default;">📖</span> 遊戲說明：<br>
 ● 只能安卓手機 + chrome瀏覽器才能用 NFC 功能；<br>
 ● 初始金額為 15M<br>
 ● 經過起點可獲得 2M。<br>
@@ -160,7 +160,12 @@ set_pool_2000000 往現金池注資 2M<br>
 <script>
    const API_URL = "https://script.google.com/macros/s/AKfycbzECqgHA8h_XNDmnZVeyTRuixgGbKYQKYg09s1xkOyntDEvZxow-HUrtXn8XnpaOUKf/exec"; 
 
-
+    // Banker-銀行家業面
+    document.getElementById("secretLink").addEventListener("click", function() {
+    // window.location.href = "banker.html"; 
+    window.open("banker.html", "_blank");
+    });
+    
     const p1Text = document.getElementById('p1-text');
     const btnPool = document.getElementById('btn-pool');
     const amountInput = document.getElementById('amount-input');
