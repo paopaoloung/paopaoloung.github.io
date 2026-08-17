@@ -1,3 +1,7 @@
 
 HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
 "C:\Program Files\Google\Chrome\Application\chrome.exe" --no-startup-window /prefetch:5
+
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --profile-directory="Profile 1" --force-device-scale-factor=2.2
+
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --profile-directory="Profile 1" --force-device-scale-factor=2.2 --no-startup-window /prefetch:5
