@@ -1,4 +1,1 @@
-兽性新人类
-高压监狱
-血恋
-满天星
+https://learn.microsoft.com/zh-tw/training/modules/csharp-basic-formatting/4-exercise-string-interpolation
