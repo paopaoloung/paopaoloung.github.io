@@ -7,10 +7,21 @@ string message = $"{greeting} {firstName}!";
 string firstName = "Bob";
 int widgetsSold = 7;
 Console.WriteLine(firstName + " sold " + widgetsSold + 7 + " widgets.");
->>Bob sold 77 widgets.
+>>Bob sold 77 widgets. //string+int==>string
 
 Console.WriteLine(firstName + " sold " + (widgetsSold + 7) + " widgets.");
->>Bob sold 14 widgets.
+>>Bob sold 14 widgets. //插號形成「運算順序」：int+int==>int數學運算
+
+資料類型轉換：
+int first = 7;
+int second = 5;
+decimal quotient = (decimal)first / (decimal)second;  //(decimal)7 / 5;也能通過
+Console.WriteLine(quotient);
+>>1.4
+
+
+
+
 
 
 
