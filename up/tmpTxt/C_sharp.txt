@@ -1,89 +1,16 @@
-namespace ≈ 開新资料夹
-class ≈ 機甲設計圖紙/软件安装包/zip ——office/PS
-object ≈ 解压后实际软件——readme.txt/word.exe/setting.ini等
-
-static（靜態）--想成：全体共用的屬性；
-标识符就是你给程序里的东西起的名字；
-  • 不能与class同名；
-  • 不能使用關鍵詞，除非加@；if✖️，@if✔️
 
 
-float  ≈ 普通小数（約小數點後7位）
-double ≈ 更精确的小数（可存15-16位）
+字串插補$ (中間豎杆-插補)
+string message = $"{greeting} {firstName}!";
 
-string str = @"C:\Windows";
-[@:逐字字符串-引號里的全為字符，包括空格/換行]
+字串、數字相加：
+string firstName = "Bob";
+int widgetsSold = 7;
+Console.WriteLine(firstName + " sold " + widgetsSold + 7 + " widgets.");
+>>Bob sold 77 widgets.
 
-string str = "C:\\Windows";
-[\:轉義符 將\原文輸出]
-
-
-string s = @"我说""你好""";
-[相當于：我说"你好"，双引号特殊，要2个]
-
-
-int a = 10;
-&a：房子的门牌号码（内存地址）可能是--地址1000 → [10]
-int* p = &a; [数据类型 * ——指针]
-  • 将p指向a的内存位置[1000]
-  • p：售楼中介p找到房子主人a的房子
-  • *p：售楼中介取得房子a[&a]待售
-
-—————————————————————
-void change(int* p)  //改一个内存地址
-{
-  *p = 100;  //任何扔进去的数值都变为100
-}
-
-int a = 10;
-change(&a);  //把a的内存地址扔进去更改
-—————————————————————
-
-数据转换：
-int i = 1000
-byte b = (byte)i; //等号左右byte相当于单位，必须一样
-当int转byte时：结果=原数÷256 的[余数]
-
-
-char和string区别？
-char：单个字符；string：字符串（一段文字）
-char c = 'A';
-string s = "A";
-看起来一样，但实际上不同：
-  •'A' → 一个字符
-  •"A" → 长度为 1 的字符串
-
-char   = 一颗珠子
-string = 一串珠子，它仍然是一串珠子，只是里面只有一颗。
-
-
-Console.ReadLine();
-接收来自用户的输入——只接受字符串
-
-●块级-作用域（Scope）
-Start()
-│
-├─ a  //可在整个Start()里用
-│
-└─ {
-     b  //只能在{}里用
-   }
-
-如果要在整个 Start() 里面使用：
-• 方法1：把变量定义到外面Star(){...}
-• 方法2：把值传出来--在b域里加上a=b
-
-
-●存取修饰符 (public / private)
-  决定: 其他类能不能访问
-private/public 管的是“谁能访问”， 管的是“变量活多久、在哪能使用”。
-  ◆public——公开，允许外部访问
-  本类可以访问
-  其他类可以访问
-  Inspector 可以显示
-
-  ◆private——
-
+Console.WriteLine(firstName + " sold " + (widgetsSold + 7) + " widgets.");
+>>Bob sold 14 widgets.
 
 
 
