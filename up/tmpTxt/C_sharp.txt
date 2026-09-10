@@ -1,8 +1,64 @@
 
 
+• Substring(起始位置, 截取數量)---截取字串片段
 string str = "abcdefb";
 string result = str.Substring(2, 3);
+string result = str[2..5]; //or（C# 8.0 以上適用）
 >>cde
+
+
+自動尋找位置：
+string str = "xyzcdefgh"; // 假設字串變長了
+int aIndex = str.IndexOf('c');
+int zIndex = str.IndexOf('e') + 1;
+
+int azLength = zIndex - aIndex;
+
+if (aIndex != -1 && str.IndexOf('e') != -1){
+  string result = str.Substring(aIndex, azLength);
+  Console.WriteLine(result); // 輸出: cde
+}
+
+• IndexOf()
+    作用：由左往右找，抓出某個字第一次出現的位置數字（Index）。
+    例子："abcdefb".IndexOf（'b'）會得到1。
+
+• LastIndexOf（）
+    作用：由右往左找，抓出某個字最後一次出現的位置數字。
+    例子："abodefb".LastIndexof（"b'）會得到6。
+
+• StartsWith() / EndsWith()
+    作用：檢查字串是不是由某個字開頭或結尾，回傳 true 或false。
+    例子："abcdefb".StartsWith（"abc"）會得到 true。
+
+• Replace()
+    作用：把字串裡的某些字全部替換成新的字。
+    例子："abcdefb".Replace（"b"，"X"）會燮成"axcdefx"。
+
+• Trim() / TrimStart() / TrimEnd()
+    作用：拔掉字串前後的空白（在整理使用者輸入的資料時超常用！）。
+    例子："hello".Trim（）會燮成 “hello”。
+
+• ToLower() / ToUpper()
+    作用：把英文全部變成小寫或大寫。
+    例子："Abc".ToLower（）會愛成 “abc"。
+
+• PadLeft() / PadRight() ---補滿與對齊類（調整文字長度）
+    作用：如果字串不夠長，在左邊或右邊補上特定的字（例如補 0）。
+    例子：做訂單編號時，把 "5" 變成五位數："5".PadLeft(5, '0') 會變成 "00005"。
+
+• String.Join()
+    作用：跟 Split（）剛好相反！它是把陣列（清單）裡的很多文字，用特定符號黏起來愛成一個大字串。
+    例子：把名字黏起來：string.Join（"。"，new［］ （"Apple"，"Banana"））會變成
+    "Apple, Banana" °
+
+• 檢查是不是 null、空字串，或者裡面全都是空白
+if (string.IsNullOrWhiteSpace(input))
+{
+    Console.WriteLine("這個字串是空的！");
+}
+
+
 
 
 
