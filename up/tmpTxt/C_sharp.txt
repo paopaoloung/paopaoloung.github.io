@@ -11,7 +11,17 @@ class box{...}                                     //老師的箱子
 class box{...public pens...}               //老師的箱子，告訴你裡面有筆，但其他的物件不讓你知道，仍為"私隱"，只讓你知道有"筆"，且沒說給大家用，屬老師私人物品；
 class box{...public static pens...}    //老師的箱子，裡面的筆說了可免費給同學隨便用。但箱子是老師私人物品，她沒同意你能私自打開，所以筆大家還是不能用；
 class static box{...public static pens...}    //老師的箱子，說了大家可以隨便打開，裡面的筆也可以隨便用。但，其他沒聲明static的不能用，只能用筆；
+    可調用 box.pens
 class static box{...public pens...}    //老師的箱子，說了大家可以隨便打開，裡面的東西只告訴你有筆，其他的藏暗格，筆也沒說能用；
+
+class box{...public pens...}  //老師的箱子，裡面有筆；因為是老師的東西 box.pens 不能用，就算box/pens其一個static了也不行，除非老師同意箱子和筆都給使用；
+box peter=new box();       //peter按老師箱子的東西，去同樣買了一套(實物化)；peter.pens 可用peter使用自己買的筆；
+    第一個box告訴電腦：我現在要準備一個裝 class box 的記憶體格子，相當於 int x=5 ，告訴電腦準備一個裝整數(int)的盒子。
+    new box()第二個box：照著老師箱子裡的工具買一份：new；peter得到一個一樣一樣的箱子；
+
+
+
+
 
 
 
