@@ -1,4 +1,54 @@
-
-
-
-萬符縛束
+[
+  {
+    "bookSourceComment": "由 AI 根據 twkan.com 網頁結構生成",
+    "bookSourceGroup": "台灣小說網",
+    "bookSourceName": "台灣小說網 (twkan)",
+    "bookSourceType": 0,
+    "bookSourceUrl": "https://twkan.com",
+    "customOrder": 0,
+    "enabled": true,
+    "enabledCookieJar": false,
+    "enabledExplore": true,
+    "exploreUrl": "玄幻奇幻::/sort/1/1/\n武俠仙俠::/sort/2/1/\n都市言情::/sort/3/1/\n歷史軍事::/sort/4/1/\n科幻靈異::/sort/6/1/\n網遊競技::/sort/7/1/",
+    "header": "{\n  \"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\"\n}",
+    "lastUpdateTime": 1727600000000,
+    "respondTime": 18000,
+    "ruleBookInfo": {
+      "author": "[property=\"og:novel:author\"]@content",
+      "coverUrl": "[property=\"og:image\"]@content",
+      "intro": "[property=\"og:description\"]@content",
+      "kind": "[property=\"og:novel:category\"]@content",
+      "lastChapter": "[property=\"og:novel:lastest_chapter_name\"]@content",
+      "name": "[property=\"og:novel:book_name\"]@content",
+      "wordCount": "[property=\"og:novel:word_count\"]@content"
+    },
+    "ruleContent": {
+      "content": "div.content, #content",
+      "nextPageUrl": "text.下一頁@href"
+    },
+    "ruleExplore": {
+      "author": "span.author@text",
+      "bookList": "div.bookbox",
+      "bookUrl": "a@href",
+      "coverUrl": "img@src",
+      "intro": "div.update@text",
+      "kind": "span.cat@text",
+      "name": "h4.bookname a@text"
+    },
+    "ruleSearch": {
+      "author": "span.author@text",
+      "bookList": "div.bookbox, ul.list-group li",
+      "bookUrl": "h4.bookname a@href, a@href",
+      "coverUrl": "img@src",
+      "intro": "div.update@text, p.intro@text",
+      "kind": "span.cat@text",
+      "name": "h4.bookname a@text, a@text"
+    },
+    "ruleToc": {
+      "chapterList": "div.book-list ul li a, ul.list-charts li a",
+      "chapterName": "text",
+      "chapterUrl": "href"
+    },
+    "searchUrl": "https://twkan.com{{key}}"
+  }
+]
