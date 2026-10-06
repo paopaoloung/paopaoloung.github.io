@@ -1,0 +1,130 @@
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 全域變數初始化
+TargetX := 0
+TargetY := 0
+IsTargetSet := false
+IsRunning := false ; 標記是否啟動監控
+
+; ==================== 建立 GUI 介面 ====================
+MyGui := Gui("+AlwaysOnTop", "AHK v2 搶票助手") ; 視窗永遠置頂
+MyGui.OnEvent("Close", (*) => ExitApp()) ; 關閉視窗即結束程式
+
+; 1. 時間設定區
+MyGui.Add("Text", "x20 y20 w80 h20", "目標時間：")
+EditTime := MyGui.Add("Edit", "x100 y17 w100 h20", "12:00:00") ; 預設時間
+
+; 2. 坐標設定與微調區
+MyGui.Add("Text", "x20 y55 w80 h20", "目標 X 坐標：")
+EditX := MyGui.Add("Edit", "x100 y52 w60 h20 Number", "0")
+EditX.OnEvent("Change", OnCoordinateChange)
+
+MyGui.Add("Text", "x20 y90 w80 h20", "目標 Y 坐標：")
+EditY := MyGui.Add("Edit", "x100 y87 w60 h20 Number", "0")
+EditY.OnEvent("Change", OnCoordinateChange)
+
+; 3. 提示說明
+MyGui.Add("Text", "x20 y125 w260 h40 cBlue", "提示：在畫面上按【Ctrl + 滑鼠左鍵】`n自動獲取並填入目前的鼠標坐標。")
+
+; 4. 控制按鈕
+BtnStart := MyGui.Add("Button", "x20 y175 w110 h35 default", "開 始 監 測")
+BtnStart.OnEvent("Click", StartMonitor)
+
+BtnStop := MyGui.Add("Button", "x150 y175 w110 h35 Disabled", "停 止")
+BtnStop.OnEvent("Click", StopMonitor)
+
+; 顯示 GUI 視窗
+MyGui.Show("w280 y230")
+
+
+; ==================== 功能函式區 ====================
+
+; --- 功能 1：Ctrl + 滑鼠左鍵 獲取位置並更新到 GUI ---
+^LButton:: {
+    global TargetX, TargetY, IsTargetSet
+    
+    ; 獲取螢幕絕對坐標
+    CoordMode "Mouse", "Screen"
+    MouseGetPos &TargetX, &TargetY
+    IsTargetSet := true
+    
+    ; 更新 GUI 上的數值
+    EditX.Value := TargetX
+    EditY.Value := TargetY
+    
+    ; 輕微閃爍提示
+    ToolTip "已成功擷取坐標！"
+    SetTimer () => ToolTip(), -1500
+}
+
+; --- 當使用者在 GUI 手動修改/微調數字時觸發 ---
+OnCoordinateChange(CtrlObj, *) {
+    global TargetX, TargetY, IsTargetSet
+    ; 讀取 GUI 上手動輸入的值
+    TargetX := Number(EditX.Value || 0)
+    TargetY := Number(EditY.Value || 0)
+    IsTargetSet := (TargetX > 0 || TargetY > 0)
+}
+
+; --- 按下「開始監測」 ---
+StartMonitor(*) {
+    global IsRunning, IsTargetSet
+    
+    if (!IsTargetSet) {
+        MsgBox "請先按 Ctrl+左鍵 設定點擊位置，或在 GUI 內填寫坐標！", "提示", "Icon!"
+        return
+    }
+    
+    IsRunning := true
+    BtnStart.Enabled := false
+    BtnStop.Enabled := true
+    EditTime.Enabled := false
+    EditX.Enabled := false
+    EditY.Enabled := false
+    
+    ; 啟動高頻率時間檢查（每 50 毫秒）
+    SetTimer CheckTime, 50
+    TrayTip "監測中", "時間監測已啟動，目標時間：" EditTime.Value, 1
+}
+
+; --- 按下「停止監測」或點擊完成後回復狀態 ---
+StopMonitor(*) {
+    global IsRunning
+    IsRunning := false
+    SetTimer CheckTime, 0 ; 關閉定時器
+    
+    BtnStart.Enabled := true
+    BtnStop.Enabled := false
+    EditTime.Enabled := true
+    EditX.Enabled := true
+    EditY.Enabled := true
+    TrayTip "已停止", "已關閉時間監測", 1
+}
+
+; --- 時間監測核心核心邏輯 ---
+CheckTime() {
+    global TargetX, TargetY, IsRunning
+    
+    if (!IsRunning)
+        return
+        
+    ; 獲取目前系統時間與 GUI 輸入的時間做比對
+    CurrentTime := FormatTime(, "HH:mm:ss")
+    
+    if (CurrentTime = EditTime.Value) {
+        ; 立即關閉監測以免在同一秒重複點擊
+        StopMonitor()
+        
+        ; 執行點擊
+        CoordMode "Mouse", "Screen"
+        Click TargetX, TargetY
+        Sleep 500
+        Click TargetX, TargetY
+        ; 彈窗恭喜
+        MsgBox "已於 " CurrentTime " 執行自動點擊！`n點擊坐標: X=" TargetX ", Y=" TargetY, "搶票觸發成功", 64
+    }
+}
+
+; --- 快速鍵：Esc 鍵隨時緊急退出腳本 ---
+Esc:: ExitApp
