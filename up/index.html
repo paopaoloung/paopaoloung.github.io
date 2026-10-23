@@ -15,39 +15,32 @@ button.del { background: #d73a49; width: auto; }
 </style>
 </head>
 <body>
-<h2>📁 临时文件同步</h2>
+<h2>📁 临时文件同步 6sKa7Eqs1hHnk5MfO1</h2>
 <p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-<input id="tokenInput" type="password" placeholder="ghp_xxxxxx" value="" />
+<p class="limit-note">11A7UNAAA0zdZ9cMsOJ3Go_ivWAPdXK3BuSy98k4hQu2650DoTcZ4a3hyMuVyzf3RQJK3HSHGADF9tSxLu</p>
+<input id="tokenInput" placeholder="ghp_xxxxxx" value="" />
 <button onclick="saveToken()">保存 Token</button>
-
-<hr>
+  <hr>
 <h3>🖼️ 上传文件（图片、PDF等）</h3>
 <p class="limit-note">文件大小限制：50MB（超过75MB将无法上传）</p>
 <input type="file" id="fileInput" />
 <button onclick="uploadFile()">上传文件</button>
-
 <h3>📄 已有文件列表</h3>
 <div id="fileList">加载中...</div>
-
 <script>
-const OWNER = 'paopaoloung'; 
+const OWNER = 'paopaoloung'; // ← 改成你自己的
 const REPO = 'paopaoloung.github.io';
 const BRANCH = 'main';
 const FOLDER = 'up/files';
 const MAX_FILE_SIZE_MB = 50;
-
 function getToken() {
   return document.getElementById('tokenInput').value || localStorage.getItem('gh_token') || '';
 }
 
 function saveToken() {
   const t = document.getElementById('tokenInput').value;
-  if(t) {
-    localStorage.setItem('gh_token', t);
-    alert('Token 已保存');
-  } else {
-    alert('请输入有效的 Token');
-  }
+  if(t) localStorage.setItem('gh_token', t);
+  alert('Token 已保存');
 }
 
 async function apiCall(method, path, body) {
@@ -70,7 +63,6 @@ async function apiCall(method, path, body) {
   }
   return res;
 }
-
 async function listFiles() {
   const res = await apiCall('GET', FOLDER);
   if (res.status === 404) return [];
@@ -89,50 +81,56 @@ async function refreshList() {
       return;
     }
 
-    container.innerHTML = '';
     for (const file of files) {
-      const div = document.createElement('div');
+  const div = document.createElement('div');
 
-      const link = document.createElement('a');
-      link.href = file.download_url;
-      link.target = '_blank';
-      link.textContent = file.name;
+  // 左側：檔名連結（保留你原本的）
+  const link = document.createElement('a');
+  link.href = file.download_url;
+  link.target = '_blank';
+  link.textContent = file.name;
 
-      const actions = document.createElement('div');
-      actions.style.display = 'flex';
-      actions.style.gap = '8px';
+  // 右側：按鈕區
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
 
-      const dlBtn = document.createElement('a');
-      dlBtn.href = file.download_url;
-      dlBtn.setAttribute('download', file.name); 
-      dlBtn.textContent = '下載';
-      dlBtn.style.background = '#0969da';
-      dlBtn.style.color = '#fff';
-      dlBtn.style.padding = '6px 10px';
-      dlBtn.style.borderRadius = '6px';
-      dlBtn.style.fontSize = '14px';
-      dlBtn.style.display = 'inline-block';
+  // 新增：下載按鈕（同樣指向 download_url）
+  const dlBtn = document.createElement('a');
+  dlBtn.href = file.download_url;
+  dlBtn.setAttribute('download', file.name); // 讓瀏覽器以下載方式處理（同網域/同源時更穩）
+  dlBtn.textContent = '下載';
+  dlBtn.style.background = '#0969da';
+  dlBtn.style.color = '#fff';
+  dlBtn.style.padding = '6px 10px';
+  dlBtn.style.borderRadius = '6px';
+  dlBtn.style.fontSize = '14px';
+  dlBtn.style.display = 'inline-block';
 
-      const delBtn = document.createElement('button');
-      delBtn.className = 'del';
-      delBtn.textContent = '删除';
-      delBtn.onclick = async () => {
-        if (!confirm('确定删除?')) return;
-        await deleteFile(file.path, file.sha);
-        refreshList();
-      };
+  // 刪除按鈕（沿用你原本）
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del';
+  delBtn.textContent = '删除';
+  delBtn.onclick = async () => {
+    if (!confirm('确定删除?')) return;
+    await deleteFile(file.path, file.sha);
+    refreshList();
+  };
 
-      actions.appendChild(dlBtn);
-      actions.appendChild(delBtn);
-      div.appendChild(link);
-      div.appendChild(actions);
-      container.appendChild(div);
-    }
+  actions.appendChild(dlBtn);
+  actions.appendChild(delBtn);
+
+  div.appendChild(link);
+  div.appendChild(actions);
+  container.appendChild(div);
+}
+    
   } catch(e) {
     container.innerHTML = `<div style="color:red">错误: ${e.message}</div>`;
   }
 }
 
+// ---------- 上传文件 ----------
 async function uploadFile() {
   const fileInput = document.getElementById('fileInput');
   const file = fileInput.files[0];
@@ -164,6 +162,7 @@ async function uploadFile() {
       await apiCall('PUT', path, body);
       fileInput.value = '';
       refreshList();
+      fetchRepoSize();
     } catch(err) {
       alert('上传失败: ' + err.message);
     }
@@ -171,14 +170,19 @@ async function uploadFile() {
   reader.readAsDataURL(file);
 }
 
+// ---------- 删除文件 ----------
 async function deleteFile(path, sha) {
   const body = { message: `Delete ${path}`, sha, branch: BRANCH };
   await apiCall('DELETE', path, body);
+  fetchRepoSize(); // 删除后更新仓库大小
 }
 
+// ---------- 初始化 ----------
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('gh_token');
   if(saved) document.getElementById('tokenInput').value = saved;
+  // 获取仓库大小
+  fetchRepoSize();
   refreshList();
 });
 </script>
