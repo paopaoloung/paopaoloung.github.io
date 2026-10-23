@@ -3,146 +3,302 @@
 <head>
 <meta charset="utf-8">
 <title>File Sync</title>
+
 <style>
-body{font-family:Arial;max-width:800px;margin:20px auto}
-.row{display:flex;gap:8px;margin:10px 0}
-input{flex:1;padding:8px}
-button{padding:6px 12px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd}
+body{
+  font-family:Arial;
+  max-width:800px;
+  margin:20px auto;
+}
+
+.row{
+  display:flex;
+  gap:8px;
+  margin:10px 0;
+}
+
+input{
+  flex:1;
+  padding:8px;
+}
+
+button{
+  padding:6px 12px;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+}
+
+th{
+  background:#f5f5f5;
+}
 </style>
+
 </head>
 <body>
 
 <h2>檔案同步8w</h2>
 
 <div class="row">
-<input id="token" type="password" placeholder="GitHub Token">
-<button onclick="login()">登入</button>
+  <input type="password" id="token" placeholder="GitHub Token">
+  <button onclick="saveToken()">登入</button>
 </div>
 
 <div class="row">
-<input id="file" type="file">
-<button onclick="upload()">上傳</button>
+  <input type="file" id="file">
+  <button onclick="upload()">上傳</button>
 </div>
 
 <table>
-<tr><th>檔案</th><th>刪除</th></tr>
+<thead>
+<tr>
+  <th>檔案名稱</th>
+  <th width="80">刪除</th>
+</tr>
+</thead>
+
 <tbody id="list"></tbody>
 </table>
 
 <script>
-const owner="paopaoloung",
-repo="paopaoloung.github.io",
-folder="up/files",
-gas="https://script.google.com/macros/s/AKfycbwBUY2s_PSMekpegdNNqoaT0Y3EeUY-_hCWLeDQibnCu9oPzhUf0sk8iTh4MKiDsaLR/exec",
-$=i=>document.getElementById(i),
-tk=()=>localStorage.tk||"",
-api=p=>`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p||""}`;
+
+const owner="paopaoloung";
+const repo="paopaoloung.github.io";
+const folder="up/files";
+
+const gas="https://script.google.com/macros/s/AKfycbwBUY2s_PSMekpegdNNqoaT0Y3EeUY-_hCWLeDQibnCu9oPzhUf0sk8iTh4MKiDsaLR/exec";
+
+const token=document.getElementById("token");
+const file=document.getElementById("file");
+const list=document.getElementById("list");
+
+const tk=()=>localStorage.github_token||"";
+
+const api=(p="")=>
+`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p}`;
 
 token.value=tk();
 
-const gh=(u,o={})=>fetch(u,{
-...o,
-headers:{
-Authorization:`token ${tk()}`,
-...(o.headers||{})
+function headers(){
+  return {
+    Authorization:`token ${tk()}`
+  };
 }
-});
 
-const b64=f=>new Promise(r=>{
-let x=new FileReader();
-x.onload=()=>r(x.result.split(",")[1]);
-x.readAsDataURL(f);
-});
+async function saveToken(){
 
-async function login(){
-if(!token.value)return alert("請輸入Token");
-localStorage.tk=token.value;
-let r=await gh(api(""));
-r.ok?(alert("登入成功"),load()):
-(localStorage.removeItem("tk"),alert("Token無效"));
+  const t=token.value.trim();
+
+  if(!t) return alert("請輸入Token");
+
+  localStorage.github_token=t;
+
+  try{
+
+    const r=await fetch(api(),{
+      headers:headers()
+    });
+
+    if(!r.ok) throw new Error();
+
+    alert("登入成功");
+    loadFiles();
+
+  }catch{
+
+    localStorage.removeItem("github_token");
+    alert("Token無效");
+
+  }
+}
+
+async function fileToBase64(f){
+
+  return new Promise(resolve=>{
+
+    const reader=new FileReader();
+
+    reader.onload=()=>{
+      resolve(reader.result.split(",")[1]);
+    };
+
+    reader.readAsDataURL(f);
+
+  });
+
 }
 
 async function upload(){
-let f=file.files[0];
-if(!f)return alert("請選擇檔案");
 
-let sha="",c=await gh(api("/"+f.name));
-if(c.ok)sha=(await c.json()).sha;
+  const f=file.files[0];
 
-let r=await gh(api("/"+f.name),{
-method:"PUT",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-message:(sha?"update ":"upload ")+f.name,
-content:await b64(f),
-...(sha&&{sha})
-})
-});
+  if(!f) return alert("請選擇檔案");
 
-let j=await r.json();
-if(!r.ok)return alert(j.message);
+  try{
 
-fetch(gas,{
-method:"POST",
-body:JSON.stringify({
-action:"add",
-name:f.name,
-url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
-sha:j.content.sha
-})
-});
+    let sha="";
 
-file.value="";
-alert("完成");
-load();
+    const check=await fetch(api("/"+f.name),{
+      headers:headers()
+    });
+
+    if(check.ok){
+      sha=(await check.json()).sha;
+    }
+
+    const r=await fetch(api("/"+f.name),{
+      method:"PUT",
+      headers:{
+        ...headers(),
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        message:(sha?"update ":"upload ")+f.name,
+        content:await fileToBase64(f),
+        ...(sha&&{sha})
+      })
+    });
+
+    const data=await r.json();
+
+    if(!r.ok){
+      return alert(data.message);
+    }
+
+    try{
+
+      await fetch(gas,{
+        method:"POST",
+        body:JSON.stringify({
+          action:"add",
+          name:f.name,
+          url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
+          sha:data.content.sha
+        })
+      });
+
+    }catch(err){
+
+      console.error("GAS失敗",err);
+
+    }
+
+    file.value="";
+
+    alert(sha?"檔案已覆蓋":"上傳成功");
+
+    loadFiles();
+
+  }catch(e){
+
+    console.error(e);
+    alert("上傳失敗");
+
+  }
 }
 
-async function del(name,sha){
-if(!confirm("刪除 "+name+" ?"))return;
+async function delFile(name,sha){
 
-await gh(api("/"+name),{
-method:"DELETE",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-message:"delete "+name,
-sha
-})
-});
+  if(!confirm("確定刪除 "+name+" ?")) return;
 
-fetch(gas,{
-method:"POST",
-body:JSON.stringify({
-action:"delete",
-name
-})
-});
+  try{
 
-load();
+    const r=await fetch(api("/"+name),{
+      method:"DELETE",
+      headers:{
+        ...headers(),
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        message:"delete "+name,
+        sha
+      })
+    });
+
+    if(!r.ok){
+      return alert("刪除失敗");
+    }
+
+    try{
+
+      await fetch(gas,{
+        method:"POST",
+        body:JSON.stringify({
+          action:"delete",
+          name:name
+        })
+      });
+
+    }catch(err){
+
+      console.error("GAS失敗",err);
+
+    }
+
+    alert("刪除成功");
+
+    loadFiles();
+
+  }catch(e){
+
+    console.error(e);
+    alert("刪除失敗");
+
+  }
 }
 
-async function load(){
-let files=await (await fetch(gas)).json();
+async function loadFiles(){
 
-list.innerHTML=files
-.sort((a,b)=>a.name.localeCompare(b.name))
-.map(f=>`
-<tr>
-<td>
-<button onclick="open('${f.url}')">
-${f.name}
-</button>
-</td>
-<td>
-<button onclick="del('${f.name}','${f.sha}')">
-刪除
-</button>
-</td>
-</tr>`).join("");
+  try{
+
+    const r=await fetch(gas);
+
+    const files=await r.json();
+
+    list.innerHTML=files
+      .sort((a,b)=>a.name.localeCompare(b.name))
+      .map(f=>`
+      <tr>
+        <td>
+          <button onclick="window.open('${f.url}','_blank')">
+            ${f.name}
+          </button>
+        </td>
+        <td>
+          <button onclick="delFile('${f.name}','${f.sha}')">
+            刪除
+          </button>
+        </td>
+      </tr>
+      `)
+      .join("");
+
+  }catch(e){
+
+    console.error(e);
+
+    list.innerHTML=`
+      <tr>
+        <td colspan="2">
+          無法讀取檔案列表
+        </td>
+      </tr>
+    `;
+  }
 }
 
-tk()&&load();
+window.onload=()=>{
+  if(tk()) loadFiles();
+};
+
 </script>
 
 </body>
