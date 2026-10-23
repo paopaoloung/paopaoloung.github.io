@@ -1,185 +1,209 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>臨時文件同步 · 仪表板</title>
-<style>
-body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 16px; }
-input, button { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; }
-#fileList div { background: #f5f5f5; margin: 4px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
-a { color: #0366d6; text-decoration: none; }
-button { background: #2ea44f; color: white; border: none; cursor: pointer; }
-button.del { background: #d73a49; width: auto; padding: 6px 12px; margin: 0; }
-.limit-note { color: #666; font-size: 0.9em; margin: -4px 0 8px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>paopaoloung</title>
+    <style>
+        /* 全域樣式美化 */
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #4a90e2;
+            --hover-color: #357abd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        /* 大標題樣式 */
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            color: #2c3e50;
+            text-align: center;
+         <!--   text-transform: uppercase;  -->
+        }
+
+        /* 按鈕容器（RWD 響應式網格） */
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* 按鈕主體與美化 */
+        .app-btn {
+            display: block;
+            background-color: var(--card-bg);
+            color: var(--primary-color);
+            text-align: center;
+            padding: 18px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        /* 電腦端滑鼠懸停效果 */
+        @media (hover: hover) {
+            .app-btn:hover {
+                background-color: var(--primary-color);
+                color: #ffffff;
+                transform: translateY(-3px);
+                box-shadow: 0 6px 12px rgba(74, 144, 226, 0.3);
+            }
+        }
+
+        /* 提示文字 (Tooltip) 樣式 */
+        .app-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: normal;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        /* 箭頭樣式 */
+        .app-btn::before {
+            content: "";
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        /* 顯示提示 (滑鼠指向時) */
+        @media (hover: hover) {
+            .app-btn:hover::after, .app-btn:hover::before {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) scale(1);
+            }
+            .app-btn:hover::before {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* 載入中動畫 */
+        .loading {
+            font-size: 1.2rem;
+            color: #888;
+            margin-top: 50px;
+        }
+
+        /* 手機端微調 */
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2rem;
+                margin-bottom: 30px;
+            }
+            .app-btn {
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+            /* 手機端不顯示Tooltip，避免阻擋點擊操作 */
+            .app-btn::after, .app-btn::before {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
-<h2>📁 臨時文件同步 11A7UNAAA0PFA3NROmWMdU_</h2>
 
-<p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-<input id="tokenInput" value="github_pat_" placeholder="ghp_xxxxxxxxxxxx" />
-<button onclick="saveToken()">保存 Token</button>
-<hr>
+    <!-- 大標題 -->
+    <h1 class="title">paopaoloung</h1>
 
-<h3>🖼️ 上传文件（图片、PDF等）</h3> 
-<p class="limit-note">文件大小限制：50MB（超过75MB将无法上传）</p>
-<input type="file" id="fileInput" />
-<button onclick="uploadFile()">上传文件</button>
+    <!-- 狀態提示（加載中） -->
+    <div id="loading" class="loading">正在同步 Excel 資料...</div>
 
-<h3>📄 已有文件列表</h3>
-<div id="fileList">加载中...</div>
+    <!-- 按鈕容器 -->
+    <div class="button-container" id="btnContainer"></div>
 
-<script>
-const OWNER = 'paopaoloung'; 
-const REPO = 'up';
-const BRANCH = 'main';
-const FOLDER = 'files';
-const MAX_FILE_SIZE_MB = 50;
+    <script>
+        // ⚠️ 請在此處替換成您部署好的 Google Apps Script 網網址
+        const gasUrl = "https://script.google.com/macros/s/AKfycbxpE9MxtiHL8XAtAgLx1JI--UDCIbw_sBh52_ACf4_jB-vxqSxGL71KS37GGv5mOiOzqQ/exec";
 
-// ---------- 工具函数 ----------
-function getToken() {
-  return document.getElementById('tokenInput').value.trim() || localStorage.getItem('gh_token') || '';
-}
+        async function fetchButtons() {
+            const container = document.getElementById('btnContainer');
+            const loadingText = document.getElementById('loading');
 
-function saveToken() {
-  const t = document.getElementById('tokenInput').value.trim();
-  if(t) {
-    localStorage.setItem('gh_token', t);
-    alert('Token 已保存');
-    refreshList();
-  } else {
-    alert('请输入有效的 Token');
-  }
-}
+            try {
+                // 向 GAS 發送請求獲取資料
+                const response = await fetch(gasUrl);
+                const data = await response.json();
 
-async function apiCall(method, path, body) {
-  const token = getToken();
-  if(!token) throw new Error('请先输入 Token');
-  
-  const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
-    
-  const options = {
-    method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    }
-  };
-  if(body) options.body = JSON.stringify(body);
-  const res = await fetch(url, options);
-  
-  if (!res.ok && res.status !== 404) {
-    const err = await res.json();
-    throw new Error(err.message || 'API error');
-  }
-  return res;
-}
+                // 隱藏載入提示
+                loadingText.style.display = 'none';
 
-// ---------- 文件列表操作 ----------
-async function listFiles() {
-  const res = await apiCall('GET', FOLDER);
-  if (res.status === 404) return [];
-  const data = await res.json();
-  if (!Array.isArray(data)) return [data];
-  return data.filter(item => item.type === 'file');
-}
+                // 巡迴資料並動態建立按鈕
+                data.forEach(item => {
+                    const btn = document.createElement('a');
+                    btn.href = item.url;
+                    btn.target = "_blank"; // 在新分頁開啟網址
+                    btn.className = 'app-btn';
+                    btn.innerText = item.name;
+                    
+                    // 設定 B 欄內容為滑鼠提示 (Tooltip)
+                    btn.setAttribute('data-tooltip', item.url);
 
-async function refreshList() {
-  const container = document.getElementById('fileList');
-  container.innerHTML = '加载中...';
-  try {
-    const files = await listFiles();
-    if (files.length === 0) {
-      container.innerHTML = '<div>暂无文件</div>';
-      return;
-    }
-    container.innerHTML = '';
-    for (const file of files) {
-      const div = document.createElement('div');
-      const link = document.createElement('a');
-      link.href = file.download_url;
-      link.target = '_blank';
-      link.textContent = file.name;
-      const delBtn = document.createElement('button');
-      delBtn.className = 'del';
-      delBtn.textContent = '删除';
-      delBtn.onclick = async () => {
-        if (!confirm('确定删除?')) return;
-        try {
-          await deleteFile(file.path, file.sha);
-          refreshList();
-        } catch (err) {
-          alert('删除失败: ' + err.message);
+                    container.appendChild(btn);
+                });
+
+            } catch (error) {
+                console.error("資料讀取失敗：", error);
+                loadingText.innerText = "無法載入資料，請確認 GAS API 權限設定是否為『所有人』。";
+            }
         }
-      };
-      div.appendChild(link);
-      div.appendChild(delBtn);
-      container.appendChild(div);
-    }
-  } catch(e) {
-    container.innerHTML = `<div style="color:red">错误: ${e.message}</div>`;
-  }
-}
 
-// ---------- 上传文件 ----------
-async function uploadFile() {
-  const fileInput = document.getElementById('fileInput');
-  const file = fileInput.files[0];
-  if (!file) return alert('请选择文件');
-
-  const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
-  if (file.size > maxBytes) {
-    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前文件约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const base64 = e.target.result.split(',')[1];
-    const path = `${FOLDER}/${file.name}`;
-    try {
-      let sha = null;
-      const checkRes = await apiCall('GET', path);
-      if (checkRes.status === 200) {
-        const data = await checkRes.json();
-        sha = data.sha;
-      }
-      const body = {
-        message: `Upload ${file.name}`,
-        content: base64,
-        branch: BRANCH,
-        sha: sha
-      };
-      await apiCall('PUT', path, body);
-      alert('上传成功');
-      fileInput.value = '';
-      refreshList();
-    } catch(err) {
-      alert('上传失败: ' + err.message);
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-// ---------- 删除文件 ----------
-async function deleteFile(path, sha) {
-  const body = { message: `Delete ${path}`, sha, branch: BRANCH };
-  await apiCall('DELETE', path, body);
-}
-
-// ---------- 初始化 ----------
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('gh_token');
-  if(saved) document.getElementById('tokenInput').value = saved;
-  
-  if (getToken()) {
-    refreshList();
-  } else {
-    document.getElementById('fileList').innerHTML = '<div>请先输入并保存 Token 以加载文件列表。</div>';
-  }
-});
-</script>
+        // 網頁載入完成後自動執行
+        window.onload = fetchButtons;
+    </script>
 </body>
 </html>
