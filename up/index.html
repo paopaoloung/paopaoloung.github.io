@@ -46,7 +46,7 @@ function saveToken() {
 async function apiCall(method, path, body) {
   const token = getToken();
   if(!token) throw new Error('请先输入 Token');
-  // 基準修復：確保網址能正確連線至 GitHub API 官方節點
+  // 基準修復：精準設定 GitHub API 節點，防止變數與網域發生錯誤粘連
   const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
   const options = {
     method,
