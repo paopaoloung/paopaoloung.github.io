@@ -6,23 +6,24 @@
 <title>临时文件同步</title>
 <style>
 body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 16px; }
-input, textarea, button { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; }
+input, button { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; }
 #fileList div { background: #f5f5f5; margin: 4px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
 a { color: #0366d6; text-decoration: none; }
 button { background: #2ea44f; color: white; border: none; cursor: pointer; }
 button.del { background: #d73a49; width: auto; }
 .limit-note { color: #666; font-size: 0.9em; margin: -4px 0 8px; }
+.unshow-txt { color: #fff; font-size: 0.9em; margin: -4px 0 8px; }
 </style>
 </head>
 <body>
 
-<h2>📁 临时文件同步</h2>
+<h2>📁 临时文件同步 6sKa7Eqs1hHnk5MfO1</h2>
 
-<!-- 狀態面板內容已依要求刪除 -->
-
-<p>输入你的 GitHub Personal Access Token（只保存在本机浏览器，切勿硬编码进代码中）</p>
-<input id="tokenInput" type="password" placeholder="ghp_xxxxxx 或 github_pat_xxxxxx" value="" />
+<p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
+<p class="limit-note">11A7UNAAA0zdZ9cMsOJ3Go_ivWAPdXK3BuSy98k4hQu2650DoTcZ4a3hyMuVyzf3RQJK3HSHGADF9tSxLu</p>
+<input id="tokenInput" placeholder="ghp_xxxxxx" value="github_pat_11A7UN⬛AAA0eawLmt2kC0GI_qiGQBNVZcXYV5nf6GIw7bPI6qiORZVBBY1ikovLpQ6D5U2OKJ73TYdb9q8w" />
 <button onclick="saveToken()">保存 Token</button>
+<p class="unshow-txt">github_pat_11A7UNAAA0K4LClBdq4cJj_geDJBiX55UE8pGK2i44zIYO8AXRIVIPFHtTGQ00ikLP5CZY4RIFLNEwc </p>
 <hr>
 
 <h3>🖼️ 上传文件（图片、PDF等）</h3>
@@ -47,41 +48,33 @@ function getToken() {
 
 function saveToken() {
   const t = document.getElementById('tokenInput').value;
-  if(t) {
-    localStorage.setItem('gh_token', t);
-    alert('Token 已成功保存至本地瀏覽器儲存區 (LocalStorage)');
-    fetchRepoSize();
-    refreshList();
-  } else {
-    alert('请输入有效的 Token');
-  }
+  if(t) localStorage.setItem('gh_token', t);
+  alert('Token 已保存');
 }
 
-// ---------- API 调用封装（自动更新速率限制显示，已加上安全防錯）----------
 function updateRateDisplay(headers) {
   if (!headers) return;
   const limit = parseInt(headers.get('X-RateLimit-Limit'));
   const remaining = parseInt(headers.get('X-RateLimit-Remaining'));
   const reset = parseInt(headers.get('X-RateLimit-Reset'));
-  
-  const elUsed = document.getElementById('apiUsed');
-  const elRemaining = document.getElementById('apiRemaining');
-  const elReset = document.getElementById('apiReset');
-
   if (!isNaN(limit) && !isNaN(remaining) && !isNaN(reset)) {
     const used = limit - remaining;
-    if(elUsed) elUsed.textContent = used;
-    if(elRemaining) elRemaining.textContent = remaining;
-    if(elReset) {
+    const apiUsedEl = document.getElementById('apiUsed');
+    const apiRemainingEl = document.getElementById('apiRemaining');
+    const apiResetEl = document.getElementById('apiReset');
+    
+    if (apiUsedEl) apiUsedEl.textContent = used;
+    if (apiRemainingEl) apiRemainingEl.textContent = remaining;
+    if (apiResetEl) {
       const resetDate = new Date(reset * 1000);
-      elReset.textContent = resetDate.toLocaleTimeString() + ' (' + resetDate.toLocaleDateString() + ')';
+      apiResetEl.textContent = resetDate.toLocaleTimeString() + ' (' + resetDate.toLocaleDateString() + ')';
     }
   }
 }
 
 async function apiCall(method, path, body) {
   const token = getToken();
-  if(!token) throw new Error('请先输入并保存 Token');
+  if(!token) throw new Error('请先输入 Token');
   const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
   const options = {
     method,
@@ -93,7 +86,6 @@ async function apiCall(method, path, body) {
   };
   if(body) options.body = JSON.stringify(body);
   const res = await fetch(url, options);
-  
   updateRateDisplay(res.headers);
   if (!res.ok && res.status !== 404) {
     const err = await res.json();
@@ -102,7 +94,7 @@ async function apiCall(method, path, body) {
   return res;
 }
 
-// ---------- 获取仓库大小（已加上安全防錯）----------
+// ---------- 获取仓库大小 ----------
 async function fetchRepoSize() {
   const token = getToken();
   if (!token) return;
@@ -116,8 +108,8 @@ async function fetchRepoSize() {
     const data = await res.json();
     const sizeKB = data.size;
     const sizeMB = (sizeKB / 1024).toFixed(2);
-    const elRepo = document.getElementById('repoSize');
-    if(elRepo) elRepo.textContent = sizeMB + ' MB';
+    const repoSizeEl = document.getElementById('repoSize');
+    if (repoSizeEl) repoSizeEl.textContent = sizeMB + ' MB';
   } catch(e) {
     console.error('获取仓库大小失败', e);
   }
@@ -134,7 +126,6 @@ async function listFiles() {
 
 async function refreshList() {
   const container = document.getElementById('fileList');
-  if(!container) return;
   container.innerHTML = '加载中...';
   try {
     const files = await listFiles();
@@ -158,7 +149,7 @@ async function refreshList() {
 
       const dlBtn = document.createElement('a');
       dlBtn.href = file.download_url;
-      dlBtn.setAttribute('download', file.name); 
+      dlBtn.setAttribute('download', file.name);
       dlBtn.textContent = '下載';
       dlBtn.style.background = '#0969da';
       dlBtn.style.color = '#fff';
@@ -172,12 +163,8 @@ async function refreshList() {
       delBtn.textContent = '删除';
       delBtn.onclick = async () => {
         if (!confirm('确定删除?')) return;
-        try {
-          await deleteFile(file.path, file.sha);
-          refreshList();
-        } catch(err) {
-          alert('删除失败: ' + err.message);
-        }
+        await deleteFile(file.path, file.sha);
+        refreshList();
       };
 
       actions.appendChild(dlBtn);
@@ -236,30 +223,24 @@ async function uploadFile() {
 async function deleteFile(path, sha) {
   const body = { message: `Delete ${path}`, sha, branch: BRANCH };
   await apiCall('DELETE', path, body);
-  fetchRepoSize(); 
+  fetchRepoSize();
 }
 
-// ---------- 初始化 (已加上安全防錯，若無標籤則不寫入) ----------
+// ---------- 初始化 ----------
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('gh_token');
   if(saved) document.getElementById('tokenInput').value = saved;
   
-  const elUsed = document.getElementById('apiUsed');
-  const elRemaining = document.getElementById('apiRemaining');
-  const elReset = document.getElementById('apiReset');
+  const apiUsedEl = document.getElementById('apiUsed');
+  const apiRemainingEl = document.getElementById('apiRemaining');
+  const apiResetEl = document.getElementById('apiReset');
   
-  if(elUsed) elUsed.textContent = '0';
-  if(elRemaining) elRemaining.textContent = '5000';
-  if(elReset) elReset.textContent = '待首次请求后更新';
+  if (apiUsedEl) apiUsedEl.textContent = '0';
+  if (apiRemainingEl) apiRemainingEl.textContent = '5000';
+  if (apiResetEl) apiResetEl.textContent = '待首次请求后更新';
   
-  if (getToken()) {
-    fetchRepoSize();
-    refreshList();
-  } else {
-    document.getElementById('fileList').innerHTML = '<div>请先输入并保存 Token 以加载文件列表</div>';
-    const elRepo = document.getElementById('repoSize');
-    if(elRepo) elRepo.textContent = '未输入 Token';
-  }
+  fetchRepoSize();
+  refreshList();
 });
 </script>
 </body>
