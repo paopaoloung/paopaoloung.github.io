@@ -2,12 +2,15 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>File Sync</title>
+<title>檔案同步8w</title>
 <style>
 body{
-  font-family:Arial;
+  font-family:Arial,sans-serif;
   max-width:800px;
   margin:20px auto;
+}
+h2{
+  margin-bottom:20px;
 }
 .row{
   display:flex;
@@ -25,20 +28,26 @@ button{
 table{
   width:100%;
   border-collapse:collapse;
+  margin-top:10px;
 }
 th,td{
-  padding:8px;
+  padding:10px;
   border-bottom:1px solid #ddd;
 }
 th{
   background:#f5f5f5;
+  text-align:left;
 }
 .action{
   text-align:right;
   white-space:nowrap;
 }
-.action button{
-  margin-left:6px;
+a{
+  color:#0066cc;
+  text-decoration:none;
+}
+a:hover{
+  text-decoration:underline;
 }
 </style>
 </head>
@@ -53,13 +62,13 @@ th{
   <button onclick="upload()">上傳</button>
 </div>
 <table>
-<thead>
-<tr>
-  <th>檔案名稱</th>
-  <th width="180">操作</th>
-</tr>
-</thead>
-<tbody id="list"></tbody>
+  <thead>
+    <tr>
+      <th>檔案名稱</th>
+      <th width="100">操作</th>
+    </tr>
+  </thead>
+  <tbody id="list"></tbody>
 </table>
 <script>
 const owner="paopaoloung";
@@ -70,7 +79,7 @@ const token=document.getElementById("token");
 const file=document.getElementById("file");
 const list=document.getElementById("list");
 const tk=()=>localStorage.github_token||"";
-const api=(p="")=>
+const api=(p="") =>
 `https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p}`;
 token.value=tk();
 function headers(){
@@ -80,7 +89,10 @@ function headers(){
 }
 async function saveToken(){
   const t=token.value.trim();
-  if(!t) return alert("請輸入Token");
+  if(!t){
+    alert("請輸入Token");
+    return;
+  }
   localStorage.github_token=t;
   try{
     const r=await fetch(api(),{
@@ -89,7 +101,7 @@ async function saveToken(){
     if(!r.ok) throw new Error();
     alert("登入成功");
     loadFiles();
-  }catch{
+  }catch(e){
     localStorage.removeItem("github_token");
     alert("Token無效");
   }
@@ -105,16 +117,19 @@ async function fileToBase64(f){
 }
 async function upload(){
   const f=file.files[0];
-  if(!f) return alert("請選擇檔案");
+  if(!f){
+    alert("請選擇檔案");
+    return;
+  }
   try{
     let sha="";
-    const check=await fetch(api("/"+f.name),{
+    const check=await fetch(api("/"+encodeURIComponent(f.name)),{
       headers:headers()
     });
     if(check.ok){
       sha=(await check.json()).sha;
     }
-    const r=await fetch(api("/"+f.name),{
+    const r=await fetch(api("/"+encodeURIComponent(f.name)),{
       method:"PUT",
       headers:{
         ...headers(),
@@ -128,15 +143,19 @@ async function upload(){
     });
     const data=await r.json();
     if(!r.ok){
-      return alert(data.message);
+      alert(data.message||"上傳失敗");
+      return;
     }
     try{
       await fetch(gas,{
         method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
         body:JSON.stringify({
           action:"add",
           name:f.name,
-          url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
+          url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${encodeURIComponent(f.name)}`,
           sha:data.content.sha
         })
       });
@@ -152,9 +171,11 @@ async function upload(){
   }
 }
 async function delFile(name,sha){
-  if(!confirm("確定刪除 "+name+" ?")) return;
+  if(!confirm("確定刪除："+name+" ?")){
+    return;
+  }
   try{
-    const r=await fetch(api("/"+name),{
+    const r=await fetch(api("/"+encodeURIComponent(name)),{
       method:"DELETE",
       headers:{
         ...headers(),
@@ -162,15 +183,19 @@ async function delFile(name,sha){
       },
       body:JSON.stringify({
         message:"delete "+name,
-        sha
+        sha:sha
       })
     });
     if(!r.ok){
-      return alert("刪除失敗");
+      alert("刪除失敗");
+      return;
     }
     try{
       await fetch(gas,{
         method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
         body:JSON.stringify({
           action:"delete",
           name:name
@@ -193,24 +218,24 @@ async function loadFiles(){
       throw new Error("HTTP "+r.status);
     }
     const files=await r.json();
-    console.log(files);
-    list.innerHTML=files
+    list.innerHTML=(Array.isArray(files)?files:[])
       .filter(f=>f && f.name)
       .sort((a,b)=>
         String(a.name).localeCompare(String(b.name))
       )
       .map(f=>`
-      <tr>
-        <td>${f.name}</td>
-        <td class="action">
-          <button onclick="window.open('${f.url}','_blank')">
-            下載
-          </button>
-          <button onclick="delFile('${f.name}','${f.sha}')">
-            刪除
-          </button>
-        </td>
-      </tr>
+        <tr>
+          <td>
+            <a href="${f.url}" target="_blank">
+              ${f.name}
+            </a>
+          </td>
+          <td class="action">
+            <button onclick="delFile('${String(f.name).replace(/'/g,"\\'")}','${f.sha||""}')">
+              刪除
+            </button>
+          </td>
+        </tr>
       `)
       .join("");
   }catch(e){
@@ -218,8 +243,7 @@ async function loadFiles(){
     list.innerHTML=`
       <tr>
         <td colspan="2">
-          無法讀取檔案列表<br>
-          ${e.message}
+          無法讀取檔案列表
         </td>
       </tr>
     `;
