@@ -1,247 +1,150 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>临时文件同步</title>
-<style>
-body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 16px; }
-input, button { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; }
-#fileList div { background: #f5f5f5; margin: 4px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
-a { color: #0366d6; text-decoration: none; }
-button { background: #2ea44f; color: white; border: none; cursor: pointer; }
-button.del { background: #d73a49; width: auto; }
-.limit-note { color: #666; font-size: 0.9em; margin: -4px 0 8px; }
-.unshow-txt { color: #fff; font-size: 0.9em; margin: -4px 0 8px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件同步</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 10px; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        button { margin-left: 5px; cursor: pointer; }
+    </style>
 </head>
 <body>
-
-<h2>📁 临时文件同步 6sKa7Eqs1hHnk5MfO1</h2>
-
-<p>输入你的 GitHub Personal Access Token（只保存在本机浏览器）</p>
-<p class="limit-note">11A7UNAAA0zdZ9cMsOJ3Go_ivWAPdXK3BuSy98k4hQu2650DoTcZ4a3hyMuVyzf3RQJK3HSHGADF9tSxLu</p>
-<input id="tokenInput" placeholder="ghp_xxxxxx" value="github_pat_11A7UN⬛AAA0eawLmt2kC0GI_qiGQBNVZcXYV5nf6GIw7bPI6qiORZVBBY1ikovLpQ6D5U2OKJ73TYdb9q8w" />
-<button onclick="saveToken()">保存 Token</button>
-<p class="unshow-txt">github_pat_11A7UNAAA0K4LClBdq4cJj_geDJBiX55UE8pGK2i44zIYO8AXRIVIPFHtTGQ00ikLP5CZY4RIFLNEwc </p>
-<hr>
-
-<h3>🖼️ 上传文件（图片、PDF等）</h3>
-<p class="limit-note">文件大小限制：50MB（超过75MB将无法上传）</p>
-<input type="file" id="fileInput" />
-<button onclick="uploadFile()">上传文件</button>
-
-<h3>📄 已有文件列表</h3>
-<div id="fileList">加载中...</div>
-
-<script>
-const OWNER = 'paopaoloung'; 
-const REPO = 'paopaoloung.github.io';
-const BRANCH = 'main';
-const FOLDER = 'up/files';
-const MAX_FILE_SIZE_MB = 50;
-
-// ---------- 工具函数 ----------
-function getToken() {
-  return document.getElementById('tokenInput').value || localStorage.getItem('gh_token') || '';
-}
-
-function saveToken() {
-  const t = document.getElementById('tokenInput').value;
-  if(t) localStorage.setItem('gh_token', t);
-  alert('Token 已保存');
-}
-
-function updateRateDisplay(headers) {
-  if (!headers) return;
-  const limit = parseInt(headers.get('X-RateLimit-Limit'));
-  const remaining = parseInt(headers.get('X-RateLimit-Remaining'));
-  const reset = parseInt(headers.get('X-RateLimit-Reset'));
-  if (!isNaN(limit) && !isNaN(remaining) && !isNaN(reset)) {
-    const used = limit - remaining;
-    const apiUsedEl = document.getElementById('apiUsed');
-    const apiRemainingEl = document.getElementById('apiRemaining');
-    const apiResetEl = document.getElementById('apiReset');
+    <h2>📁 文件同步 (up/tmp/)</h2>
     
-    if (apiUsedEl) apiUsedEl.textContent = used;
-    if (apiRemainingEl) apiRemainingEl.textContent = remaining;
-    if (apiResetEl) {
-      const resetDate = new Date(reset * 1000);
-      apiResetEl.textContent = resetDate.toLocaleTimeString() + ' (' + resetDate.toLocaleDateString() + ')';
-    }
-  }
-}
+    <!-- Token 設定 -->
+    <div style="margin-bottom: 15px;">
+        <input type="password" id="tokenInput" placeholder="輸入 GitHub PAT (需有 repo 權限)" style="width: 70%;">
+        <button onclick="saveToken()">儲存 Token</button>
+    </div>
 
-async function apiCall(method, path, body) {
-  const token = getToken();
-  if(!token) throw new Error('请先输入 Token');
-  const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
-  const options = {
-    method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    }
-  };
-  if(body) options.body = JSON.stringify(body);
-  const res = await fetch(url, options);
-  updateRateDisplay(res.headers);
-  if (!res.ok && res.status !== 404) {
-    const err = await res.json();
-    throw new Error(err.message || 'API error');
-  }
-  return res;
-}
+    <!-- 上傳區 -->
+    <div style="margin-bottom: 20px;">
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">上傳檔案</button>
+    </div>
 
-// ---------- 获取仓库大小 ----------
-async function fetchRepoSize() {
-  const token = getToken();
-  if (!token) return;
-  try {
-    const url = `https://github.com{OWNER}/${REPO}`;
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    updateRateDisplay(res.headers);
-    if (!res.ok) return;
-    const data = await res.json();
-    const sizeKB = data.size;
-    const sizeMB = (sizeKB / 1024).toFixed(2);
-    const repoSizeEl = document.getElementById('repoSize');
-    if (repoSizeEl) repoSizeEl.textContent = sizeMB + ' MB';
-  } catch(e) {
-    console.error('获取仓库大小失败', e);
-  }
-}
+    <!-- 檔案列表 -->
+    <h3>📄 檔案列表</h3>
+    <div id="fileList">載入中...</div>
 
-// ---------- 文件列表操作 ----------
-async function listFiles() {
-  const res = await apiCall('GET', FOLDER);
-  if (res.status === 404) return [];
-  const data = await res.json();
-  if (!Array.isArray(data)) return [data];
-  return data.filter(item => item.type === 'file');
-}
+    <script>
+        // 設定你的倉庫資訊
+        const OWNER = 'paopaoloung';
+        const REPO = 'paopaoloung.github.io'; // 或是你的 Pages 倉庫名
+        const TARGET_DIR = 'up/tmp';
 
-async function refreshList() {
-  const container = document.getElementById('fileList');
-  container.innerHTML = '加载中...';
-  try {
-    const files = await listFiles();
-    if (files.length === 0) {
-      container.innerHTML = '<div>暂无文件</div>';
-      return;
-    }
+        let TOKEN = localStorage.getItem('gh_token') || '';
+        if (TOKEN) document.getElementById('tokenInput').value = TOKEN;
 
-    container.innerHTML = '';
-    for (const file of files) {
-      const div = document.createElement('div');
+        function saveToken() {
+            TOKEN = document.getElementById('tokenInput').value.trim();
+            localStorage.setItem('gh_token', TOKEN);
+            alert('Token 已儲存！');
+            loadFiles();
+        }
 
-      const link = document.createElement('a');
-      link.href = file.download_url;
-      link.target = '_blank';
-      link.textContent = file.name;
+        async function apiFetch(path, options = {}) {
+            const res = await fetch(`https://github.com{OWNER}/${REPO}/contents/${path}`, {
+                ...options,
+                headers: {
+                    'Authorization': `token ${TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    ...options.headers
+                }
+            });
+            if (!res.ok && res.status !== 404) {
+                const err = await res.json();
+                throw new Error(err.message || 'API 錯誤');
+            }
+            return res;
+        }
 
-      const actions = document.createElement('div');
-      actions.style.display = 'flex';
-      actions.style.gap = '8px';
+        // 讀取並按名稱排序列表
+        async function loadFiles() {
+            const listDiv = document.getElementById('fileList');
+            if (!TOKEN) { listDiv.innerHTML = '請先輸入並儲存 Token'; return; }
+            listDiv.innerHTML = '載入中...';
+            try {
+                const res = await apiFetch(TARGET_DIR);
+                if (res.status === 404) { listDiv.innerHTML = '資料夾暫無檔案'; return; }
+                const files = await res.json();
+                
+                // 按名稱排序
+                files.sort((a, b) => a.name.localeCompare(b.name));
 
-      const dlBtn = document.createElement('a');
-      dlBtn.href = file.download_url;
-      dlBtn.setAttribute('download', file.name);
-      dlBtn.textContent = '下載';
-      dlBtn.style.background = '#0969da';
-      dlBtn.style.color = '#fff';
-      dlBtn.style.padding = '6px 10px';
-      dlBtn.style.borderRadius = '6px';
-      dlBtn.style.fontSize = '14px';
-      dlBtn.style.display = 'inline-block';
+                listDiv.innerHTML = files.map(f => `
+                    <div class="item">
+                        <span>${f.name}</span>
+                        <div>
+                            <button onclick="window.open('${f.download_url}', '_blank')">下載</button>
+                            <button onclick="deleteFile('${f.name}', '${f.sha}')" style="color:red;">刪除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                listDiv.innerHTML = '讀取失敗: ' + err.message;
+            }
+        }
 
-      const delBtn = document.createElement('button');
-      delBtn.className = 'del';
-      delBtn.textContent = '删除';
-      delBtn.onclick = async () => {
-        if (!confirm('确定删除?')) return;
-        await deleteFile(file.path, file.sha);
-        refreshList();
-      };
+        // 上傳檔案
+        async function uploadFile() {
+            const input = document.getElementById('fileInput');
+            if (!input.files.length) return alert('請選擇檔案');
+            if (!TOKEN) return alert('請先設定 Token');
 
-      actions.appendChild(dlBtn);
-      actions.appendChild(delBtn);
-      div.appendChild(link);
-      div.appendChild(actions);
-      container.appendChild(div);
-    }
-  } catch(e) {
-    container.innerHTML = `<div style="color:red">错误: ${e.message}</div>`;
-  }
-}
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async () => {
+                const content = reader.result.split(',')[1]; // 取得 Base64 編碼
+                try {
+                    // 檢查檔案是否已存在（若存在需獲取 sha 才能覆蓋，精簡起見此處直接嘗試寫入）
+                    let sha;
+                    try {
+                        const check = await apiFetch(`${TARGET_DIR}/${file.name}`);
+                        if (check.ok) { const data = await check.json(); sha = data.sha; }
+                    } catch(e){}
 
-// ---------- 上传文件 ----------
-async function uploadFile() {
-  const fileInput = document.getElementById('fileInput');
-  const file = fileInput.files[0];
-  if (!file) return alert('请选择文件');
+                    await apiFetch(`${TARGET_DIR}/${file.name}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            message: `Upload ${file.name} via web`,
+                            content: content,
+                            sha: sha
+                        })
+                    });
+                    alert('上傳成功！(GitHub Pages 更新可能需要 1~2 分鐘)');
+                    input.value = '';
+                    loadFiles();
+                } catch (err) {
+                    alert('上傳失敗: ' + err.message);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
 
-  const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
-  if (file.size > maxBytes) {
-    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前文件约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
-    return;
-  }
+        // 刪除檔案
+        async function deleteFile(name, sha) {
+            if (!confirm(`確定要刪除 ${name} 嗎？`)) return;
+            try {
+                await apiFetch(`${TARGET_DIR}/${name}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({
+                        message: `Delete ${name} via web`,
+                        sha: sha
+                    })
+                });
+                alert('刪除成功！');
+                loadFiles();
+            } catch (err) {
+                alert('刪除失敗: ' + err.message);
+            }
+        }
 
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const base64 = e.target.result.split(',')[1];
-    const path = `${FOLDER}/${file.name}`;
-    try {
-      let sha = null;
-      const checkRes = await apiCall('GET', path);
-      if (checkRes.status === 200) {
-        const data = await checkRes.json();
-        sha = data.sha;
-      }
-      const body = {
-        message: `Upload ${file.name}`,
-        content: base64,
-        branch: BRANCH,
-        sha: sha
-      };
-      await apiCall('PUT', path, body);
-      alert('上传成功');
-      fileInput.value = '';
-      refreshList();
-      fetchRepoSize();
-    } catch(err) {
-      alert('上传失败: ' + err.message);
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-// ---------- 删除文件 ----------
-async function deleteFile(path, sha) {
-  const body = { message: `Delete ${path}`, sha, branch: BRANCH };
-  await apiCall('DELETE', path, body);
-  fetchRepoSize();
-}
-
-// ---------- 初始化 ----------
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('gh_token');
-  if(saved) document.getElementById('tokenInput').value = saved;
-  
-  const apiUsedEl = document.getElementById('apiUsed');
-  const apiRemainingEl = document.getElementById('apiRemaining');
-  const apiResetEl = document.getElementById('apiReset');
-  
-  if (apiUsedEl) apiUsedEl.textContent = '0';
-  if (apiRemainingEl) apiRemainingEl.textContent = '5000';
-  if (apiResetEl) apiResetEl.textContent = '待首次请求后更新';
-  
-  fetchRepoSize();
-  refreshList();
-});
-</script>
+        // 初始載入
+        if (TOKEN) loadFiles();
+    </script>
 </body>
 </html>
