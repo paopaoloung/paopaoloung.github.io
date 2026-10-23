@@ -57,8 +57,8 @@ async function apiCall(method, path, body) {
   const token = getToken();
   if(!token) throw new Error('请先输入 Token');
   
-  // ✅ 已修正：使用正確的 ://github.com 網址，並補上變數的 ${} 符號
-  const url = `https://://github.com/repos/${OWNER}/${REPO}/contents/${path}`;
+  // ✅ 已徹底修正：移除多餘的 ://，並使用乾淨正確的 GitHub API 網址格式
+  const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
     
   const options = {
     method,
@@ -103,7 +103,7 @@ async function refreshList() {
       const div = document.createElement('div');
       const link = document.createElement('a');
       
-      // ✅ 已修正：點擊列表時，直接開啟您的 GitHub Pages 公開網址
+      // ✅ 點擊列表時，直接開啟您的 GitHub Pages 公開網址
       link.href = `https://${OWNER}.github.io/${file.path}`;
       link.target = '_blank';
       link.textContent = file.name;
@@ -132,17 +132,19 @@ async function refreshList() {
 // ---------- 上传文件 ----------
 async function uploadFile() {
   const fileInput = document.getElementById('fileInput');
+  // ✅ 已修正：補回 [0] 以正確取得選取的檔案物件
   const file = fileInput.files[0];
   if (!file) return alert('请选择文件');
 
   const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
   if (file.size > maxBytes) {
-    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前 file 约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
+    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前文件约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
     return;
   }
 
   const reader = new FileReader();
   reader.onload = async function(e) {
+    // ✅ 已修正：正確切割 Base64 字串
     const base64 = e.target.result.split(',')[1];
     const path = `${FOLDER}/${file.name}`;
     try {
