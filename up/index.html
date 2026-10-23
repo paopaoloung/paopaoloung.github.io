@@ -10,7 +10,6 @@ input{flex:1;padding:8px}
 button{padding:6px 12px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #ddd}
-th{background:#f5f5f5}
 </style>
 </head>
 <body>
@@ -18,195 +17,132 @@ th{background:#f5f5f5}
 <h2>檔案同步8w</h2>
 
 <div class="row">
-<input type="password" id="token" placeholder="GitHub Token">
-<button onclick="saveToken()">登入</button>
+<input id="token" type="password" placeholder="GitHub Token">
+<button onclick="login()">登入</button>
 </div>
 
 <div class="row">
-<input type="file" id="file">
+<input id="file" type="file">
 <button onclick="upload()">上傳</button>
 </div>
 
 <table>
-<thead>
-<tr>
-<th>檔案名稱</th>
-<th width="80">操作</th>
-</tr>
-</thead>
+<tr><th>檔案</th><th>刪除</th></tr>
 <tbody id="list"></tbody>
 </table>
 
 <script>
 const owner="paopaoloung",
-      repo="paopaoloung.github.io",
-      folder="up/files",
-      gas="https://script.google.com/macros/s/AKfycbwBUY2s_PSMekpegdNNqoaT0Y3EeUY-_hCWLeDQibnCu9oPzhUf0sk8iTh4MKiDsaLR/exec";
-
-const $=id=>document.getElementById(id);
-const token=$("token"),
-      file=$("file"),
-      list=$("list");
-
-const tk=()=>localStorage.github_token||"";
-
-const api=(p="")=>
-`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p}`;
-
-const gh=(url,opt={})=>fetch(url,{
- ...opt,
- headers:{
-  Authorization:`token ${tk()}`,
-  ...(opt.headers||{})
- }
-});
+repo="paopaoloung.github.io",
+folder="up/files",
+gas="你的GAS網址",
+$=i=>document.getElementById(i),
+tk=()=>localStorage.tk||"",
+api=p=>`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p||""}`;
 
 token.value=tk();
 
-async function saveToken(){
- let t=token.value.trim();
- if(!t) return alert("請輸入Token");
-
- localStorage.github_token=t;
-
- try{
-  let r=await gh(api());
-  if(!r.ok) throw 0;
-
-  alert("登入成功");
-  loadFiles();
-
- }catch{
-  localStorage.removeItem("github_token");
-  alert("Token無效");
- }
+const gh=(u,o={})=>fetch(u,{
+...o,
+headers:{
+Authorization:`token ${tk()}`,
+...(o.headers||{})
 }
+});
 
-async function toBase64(f){
- return new Promise(r=>{
-  let fr=new FileReader();
-  fr.onload=()=>r(fr.result.split(",")[1]);
-  fr.readAsDataURL(f);
- });
+const b64=f=>new Promise(r=>{
+let x=new FileReader();
+x.onload=()=>r(x.result.split(",")[1]);
+x.readAsDataURL(f);
+});
+
+async function login(){
+if(!token.value)return alert("請輸入Token");
+localStorage.tk=token.value;
+let r=await gh(api(""));
+r.ok?(alert("登入成功"),load()):
+(localStorage.removeItem("tk"),alert("Token無效"));
 }
 
 async function upload(){
+let f=file.files[0];
+if(!f)return alert("請選擇檔案");
 
- const f=file.files[0];
- if(!f) return alert("請選擇檔案");
+let sha="",c=await gh(api("/"+f.name));
+if(c.ok)sha=(await c.json()).sha;
 
- try{
+let r=await gh(api("/"+f.name),{
+method:"PUT",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+message:(sha?"update ":"upload ")+f.name,
+content:await b64(f),
+...(sha&&{sha})
+})
+});
 
-  let sha="";
+let j=await r.json();
+if(!r.ok)return alert(j.message);
 
-  let c=await gh(api("/"+f.name));
-  if(c.ok) sha=(await c.json()).sha;
+fetch(gas,{
+method:"POST",
+body:JSON.stringify({
+action:"add",
+name:f.name,
+url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
+sha:j.content.sha
+})
+});
 
-  let r=await gh(api("/"+f.name),{
-   method:"PUT",
-   headers:{
-    "Content-Type":"application/json"
-   },
-   body:JSON.stringify({
-    message:(sha?"update ":"upload ")+f.name,
-    content:await toBase64(f),
-    ...(sha&&{sha})
-   })
-  });
-
-  let j=await r.json();
-
-  if(!r.ok)
-   return alert("失敗："+j.message);
-
-  if(gas){
-   await fetch(gas,{
-    method:"POST",
-    body:JSON.stringify({
-     action:"add",
-     name:f.name,
-     url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
-     sha:j.content.sha
-    })
-   });
-  }
-
-  file.value="";
-  alert(sha?"檔案已覆蓋":"上傳成功");
-  loadFiles();
-
- }catch(e){
-  alert("上傳失敗");
- }
+file.value="";
+alert("完成");
+load();
 }
 
-async function delFile(name,sha){
+async function del(name,sha){
+if(!confirm("刪除 "+name+" ?"))return;
 
- if(!confirm("刪除 "+name+" ?")) return;
+await gh(api("/"+name),{
+method:"DELETE",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+message:"delete "+name,
+sha
+})
+});
 
- try{
+fetch(gas,{
+method:"POST",
+body:JSON.stringify({
+action:"delete",
+name
+})
+});
 
-  let r=await gh(api("/"+name),{
-   method:"DELETE",
-   headers:{
-    "Content-Type":"application/json"
-   },
-   body:JSON.stringify({
-    message:"delete "+name,
-    sha
-   })
-  });
-
-  if(!r.ok)
-   return alert("刪除失敗");
-
-   if(gas){
-    await fetch(gas,{
-     method:"POST",
-     body:JSON.stringify({
-      action:"delete",
-      name
-     })
-    });
-   }
-
-   alert("刪除成功");
-   loadFiles();
-
- }catch{
-  alert("刪除失敗");
- }
+load();
 }
 
-async function loadFiles(){
+async function load(){
+let files=await (await fetch(gas)).json();
 
- try{
-
-  const files=await (await fetch(gas)).json();
-
-  list.innerHTML=files
-   .sort((a,b)=>a.name.localeCompare(b.name))
-   .map(f=>`
-   <tr>
-    <td>
-     <button onclick="open('${f.url}')">
-      ${f.name}
-     </button>
-    </td>
-    <td>
-     <button onclick="delFile('${f.name}','${f.sha}')">
-      刪除
-     </button>
-    </td>
-   </tr>
-   `).join("");
-
- }catch{
-  list.innerHTML="";
- }
+list.innerHTML=files
+.sort((a,b)=>a.name.localeCompare(b.name))
+.map(f=>`
+<tr>
+<td>
+<button onclick="open('${f.url}')">
+${f.name}
+</button>
+</td>
+<td>
+<button onclick="del('${f.name}','${f.sha}')">
+刪除
+</button>
+</td>
+</tr>`).join("");
 }
 
-window.onload=()=>tk()&&loadFiles();
+tk()&&load();
 </script>
 
 </body>
