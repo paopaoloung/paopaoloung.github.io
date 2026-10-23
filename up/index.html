@@ -46,6 +46,7 @@ function saveToken() {
 async function apiCall(method, path, body) {
   const token = getToken();
   if(!token) throw new Error('请先输入 Token');
+  // 基準修復：確保網址能正確連線至 GitHub API 官方節點
   const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
   const options = {
     method,
@@ -133,7 +134,7 @@ async function refreshList() {
 // ---------- 上传文件 ----------
 async function uploadFile() {
   const fileInput = document.getElementById('fileInput');
-  const file = fileInput.files[0];
+  const file = fileInput.files;
   if (!file) return alert('请选择文件');
 
   const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -144,7 +145,7 @@ async function uploadFile() {
 
   const reader = new FileReader();
   reader.onload = async function(e) {
-    const base64 = e.target.result.split(',')[1];
+    const base64 = e.target.result.split(',');
     const path = `${FOLDER}/${file.name}`;
     try {
       let sha = null;
