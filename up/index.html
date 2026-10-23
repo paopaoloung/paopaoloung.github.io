@@ -6,19 +6,21 @@
 <style>
 body{font-family:Arial;max-width:800px;margin:20px auto}
 .row{display:flex;gap:8px;margin:10px 0}
-input[type=text]{flex:1;padding:8px;}
-button{padding:6px 12px;cursor:pointer}
+input{flex:1;padding:8px}
+button{padding:6px 12px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #ddd}
 th{background:#f5f5f5}
+small{color:#888}
 </style>
 </head>
+
 <body>
 
 <h2>檔案同步8w</h2>
 
 <div class="row">
-<input type="password" id="token" placeholder="GitHub Token" width="280">
+<input type="password" id="token" placeholder="GitHub Token">
 <button onclick="saveToken()">登入</button>
 </div>
 
@@ -27,111 +29,150 @@ th{background:#f5f5f5}
 <button onclick="upload()">上傳</button>
 </div>
 
-<p><font color="white" size=2>github_pat_11A7UNAAA0eawLmt2kC0GI_qiGQBNVZcXYV5nf6GIw7bPI6qiORZVBBY1ikovLpQ6D5U2OKJ73TYdb9q</font>
 <table>
-<thead>
 <tr>
 <th>檔案名稱</th>
 <th width="80">下載</th>
 <th width="80">刪除</th>
 </tr>
-</thead>
 <tbody id="list"></tbody>
 </table>
 
 <script>
+
 const owner="paopaoloung",
 repo="paopaoloung.github.io",
-folder="up/files";
+folder="up/files",
+api=p=>`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p||""}`;
 
-const api=(path="")=>
-`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${path}`;
-
-const tokenBox=document.getElementById("token");
-tokenBox.value=localStorage.github_token||"";
-
-const getToken=()=>localStorage.github_token||"";
+token.value=localStorage.github_token||"";
+const tk=()=>localStorage.github_token||"";
 
 async function saveToken(){
-    let token=tokenBox.value.trim();
-    if(!token)return alert("請輸入Token");
-
-    localStorage.github_token=token;
-
-    try{
-        let r=await fetch(api(),{
-            headers:{Authorization:`token ${token}`}
-        });
-
-        if(!r.ok) throw 0;
-
-        loadFiles();
-    }catch{
-        alert("Token無效");
-    }
+ let t=token.value.trim();
+ if(!t)return alert("請輸入Token");
+ localStorage.github_token=t;
+ try{
+  let r=await fetch(api(""),{headers:{Authorization:`token ${t}`}});
+  if(!r.ok)throw 0;
+  loadFiles();
+ }catch{
+  alert("Token無效");
+ }
 }
 
 async function upload(){
-    let f=file.files[0];
-    if(!f)return alert("請選擇檔案");
 
-    let bytes=new Uint8Array(await f.arrayBuffer());
-    let b64=btoa([...bytes].map(x=>String.fromCharCode(x)).join(""));
+ let f=file.files[0];
+ if(!f)return alert("請選擇檔案");
 
-    await fetch(api("/"+f.name),{
-        method:"PUT",
-        headers:{
-            Authorization:`token ${getToken()}`,
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            message:`upload ${f.name}`,
-            content:b64
-        })
-    });
+ try{
 
-    loadFiles();
+  let b64=btoa([...new Uint8Array(await f.arrayBuffer())]
+  .map(x=>String.fromCharCode(x)).join(""));
+
+  let sha="";
+
+  let c=await fetch(api("/"+f.name),{
+   headers:{Authorization:`token ${tk()}`}
+  });
+
+  if(c.ok) sha=(await c.json()).sha;
+
+  let r=await fetch(api("/"+f.name),{
+   method:"PUT",
+   headers:{
+    Authorization:`token ${tk()}`,
+    "Content-Type":"application/json"
+   },
+   body:JSON.stringify({
+    message:(sha?"update ":"upload ")+f.name,
+    content:b64,
+    ...(sha&&{sha})
+   })
+  });
+
+  let j=await r.json();
+
+  if(!r.ok)
+   return alert("失敗："+j.message);
+
+  list.insertAdjacentHTML("afterbegin",`
+   <tr>
+    <td>${f.name}<br><small>/${folder}/${f.name}</small></td>
+    <td>${sha?"已覆蓋":"同步中"}</td>
+    <td>-</td>
+   </tr>`);
+
+  file.value="";
+
+  alert(sha?"檔案已覆蓋":"上傳成功");
+
+  setTimeout(loadFiles,1000);
+
+ }catch(e){
+  alert("上傳失敗");
+ }
+
 }
 
-async function delFile(name,sha){
-    if(!confirm(`刪除 ${name} ?`)) return;
+async function delFile(n,sha){
 
-    await fetch(api("/"+name),{
-        method:"DELETE",
-        headers:{
-            Authorization:`token ${getToken()}`,
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            message:`delete ${name}`,
-            sha
-        })
-    });
+ if(!confirm("刪除 "+n+" ?"))return;
 
-    loadFiles();
+ try{
+
+  let r=await fetch(api("/"+n),{
+   method:"DELETE",
+   headers:{
+    Authorization:`token ${tk()}`,
+    "Content-Type":"application/json"
+   },
+   body:JSON.stringify({
+    message:"delete "+n,
+    sha
+   })
+  });
+
+  if(!r.ok)
+   return alert("刪除失敗");
+
+  alert("刪除成功");
+
+  loadFiles();
+
+ }catch{
+  alert("刪除失敗");
+ }
+
 }
 
 async function loadFiles(){
-    let r=await fetch(api());
-    let files=await r.json();
 
-    list.innerHTML="";
+ try{
 
-    files.sort((a,b)=>a.name.localeCompare(b.name))
-    .forEach(f=>{
-        list.innerHTML+=`
-        <tr>
-            <td>${f.name}</td>
-            <td><a href="${f.download_url}" target="_blank">下載</a></td>
-            <td><button onclick="delFile('${f.name}','${f.sha}')">刪除</button></td>
-        </tr>`;
-    });
+  let files=await (await fetch(api(""))).json();
+
+  if(!Array.isArray(files))return;
+
+  files.sort((a,b)=>a.name.localeCompare(b.name));
+
+  list.innerHTML=files.map(f=>`
+   <tr>
+    <td>${f.name}<br>
+    <small>/${folder}/${f.name}</small></td>
+    <td><a href="${f.download_url}" target="_blank">下載</a></td>
+    <td><button onclick="delFile('${f.name}','${f.sha}')">刪除</button></td>
+   </tr>`).join("");
+
+ }catch(e){
+  console.log(e);
+ }
+
 }
 
-window.onload=()=>{
-    if(getToken()) loadFiles();
-};
-</script>
+window.onload=()=>tk()&&loadFiles();
 
+</script>
 </body>
 </html>
