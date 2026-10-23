@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <h2>📁 文件同步 (up/files/)</h2>
+    <h2>📁 文件同步 (up/tmp/)</h2>
     
     <!-- Token 設定 -->
     <div style="margin-bottom: 15px;">
@@ -56,13 +56,12 @@
                     }
                 });
                 if (!res.ok && res.status !== 404) {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
                     throw new Error(err.message || `HTTP ${res.status}`);
                 }
                 return res;
             } catch (e) {
-                // 捕捉網路中斷、跨域或 API 被封鎖的真正原因
-                throw new Error(e.message || '網路連線失敗或權限不足');
+                throw new Error(e.message || '網路請求失敗');
             }
         }
 
@@ -72,10 +71,33 @@
             listDiv.innerHTML = '載入中...';
             try {
                 const res = await apiFetch(TARGET_DIR);
-                if (res.status === 404) { listDiv.innerHTML = '資料夾暫無檔案（或 up/tmp 目錄尚未建立）'; return; }
-                const files = await res.json();
                 
-                if (!Array.isArray(files)) { listDiv.innerHTML = '無法讀取列表，請確認路徑是否為資料夾'; return; }
+                // 情況 A：資料夾不存在 (404) 或是空資料夾
+                if (res.status === 404) { 
+                    listDiv.innerHTML = '資料夾暫無檔案（請先上傳檔案以建立 up/tmp 資料夾）'; 
+                    return; 
+                }
+                
+                const data = await res.json();
+                let files = [];
+
+                // 情況 B：如果只有一個檔案，GitHub API 會直接回傳該檔案物件而非陣列
+                if (Array.isArray(data)) {
+                    files = data;
+                } else if (data && data.type === 'file') {
+                    files = [data];
+                } else {
+                    listDiv.innerHTML = '無法識別該路徑的檔案格式';
+                    return;
+                }
+
+                // 過濾掉可能不小心產生的子資料夾，只留下檔案
+                files = files.filter(f => f.type === 'file');
+
+                if (files.length === 0) {
+                    listDiv.innerHTML = '資料夾內暫無檔案';
+                    return;
+                }
 
                 // 按名稱排序
                 files.sort((a, b) => a.name.localeCompare(b.name));
@@ -90,7 +112,7 @@
                     </div>
                 `).join('');
             } catch (err) {
-                listDiv.innerHTML = `讀取失敗: ${err.message}<br><small style="color:gray;">提示：請檢查 Token 是否正確，或按 F12 開啟主控台查看詳細 Console 錯誤。</small>`;
+                listDiv.innerHTML = `<span style="color:red;">讀取失敗：${err.message}</span><br><small style="color:gray;">請檢查 Token 權限是否包含 repo，或名稱是否完全正確。</small>`;
             }
         }
 
@@ -103,13 +125,16 @@
             const reader = new FileReader();
             
             reader.onload = async () => {
-                // 正確精準地擷取 Base64 純字串部分
+                // 精準分離 Base64 標頭
                 const base64Content = reader.result.split(',')[1]; 
                 try {
                     let sha;
                     try {
                         const check = await apiFetch(`${TARGET_DIR}/${file.name}`);
-                        if (check.ok) { const data = await check.json(); sha = data.sha; }
+                        if (check.ok) { 
+                            const data = await check.json(); 
+                            sha = data.sha; 
+                        }
                     } catch(e){}
 
                     await apiFetch(`${TARGET_DIR}/${file.name}`, {
