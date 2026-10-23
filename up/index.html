@@ -192,50 +192,29 @@ async function upload(){
 
 async function delFile(name,sha){
 
-    if(!confirm("確定刪除 "+name+" ?")){
-        return;
-    }
+    if(!confirm("確定刪除 "+name+" ?")) return;
 
-    try{
-
-        const r=await fetch(
-            api("/"+encodeURIComponent(name)),
-            {
-                method:"DELETE",
-                headers:{
-                    ...headers(),
-                    "Content-Type":"application/json"
-                },
-                body:JSON.stringify({
-                    message:"delete "+name,
-                    sha:sha
-                })
-            }
-        );
-
-        if(!r.ok){
-            alert("刪除失敗");
-            return;
+    const r=await fetch(
+        api("/"+encodeURIComponent(name)),
+        {
+            method:"DELETE",
+            headers:{
+                ...headers(),
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                message:"delete "+name,
+                sha:sha
+            })
         }
+    );
 
-        try{
-            await fetch(gas,{
-                method:"POST",
-                body:JSON.stringify({
-                    action:"delete",
-                    name:name
-                })
-            });
-        }catch(err){}
+    const txt=await r.text();
 
-        alert("刪除成功");
+    console.log("status=",r.status);
+    console.log(txt);
 
-        loadFiles();
-
-    }catch(e){
-        console.error(e);
-        alert("刪除失敗");
-    }
+    alert(txt);
 }
 
 async function loadFiles(){
