@@ -3,96 +3,138 @@
 <head>
 <meta charset="utf-8">
 <title>File Sync</title>
+
 <style>
-body{font-family:sans-serif;max-width:600px;margin:20px auto}
-li{margin:5px 0}
-button{margin-left:5px}
+body{
+    font-family:Arial,sans-serif;
+    max-width:800px;
+    margin:20px auto;
+    padding:10px;
+}
+
+.row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+}
+
+input[type=text]{
+    flex:1;
+    padding:8px;
+}
+
+button{
+    padding:6px 12px;
+    cursor:pointer;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+th,td{
+    border-bottom:1px solid #ddd;
+    padding:8px;
+    text-align:left;
+}
+
+th{
+    background:#f5f5f5;
+}
+
+.actions{
+    display:flex;
+    gap:6px;
+}
+
+a{
+    text-decoration:none;
+}
 </style>
 </head>
+
 <body>
 
-<input type="file" id="file">
-<button onclick="upload()">上傳</button>
+<h2>檔案同步</h2>
 
-<ul id="list"></ul>
+<div class="row">
+    <input type="text"
+           id="token"
+           placeholder="請輸入 GitHub Token">
+    <button onclick="saveToken()">保存</button>
+</div>
+
+<div class="row">
+    <input type="file" id="file">
+    <button onclick="upload()">上傳</button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>檔案名稱</th>
+            <th width="80">下載</th>
+            <th width="80">刪除</th>
+        </tr>
+    </thead>
+    <tbody id="list"></tbody>
+</table>
 
 <script>
+
 const owner="paopaoloung";
 const repo="paopaoloung.github.io";
-const path="up/files";
-const token="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";
+const folder="up/files";
+
+document.getElementById("token").value=
+    localStorage.getItem("github_token") || "";
+
+function getToken(){
+    return localStorage.getItem("github_token");
+}
+
+function saveToken(){
+    localStorage.setItem(
+        "github_token",
+        document.getElementById("token").value.trim()
+    );
+
+    alert("Token 已保存");
+}
 
 async function upload(){
-  const f=document.getElementById('file').files[0];
-  if(!f) return;
 
-  const content=btoa(
-    new Uint8Array(await f.arrayBuffer())
-      .reduce((a,b)=>a+String.fromCharCode(b),'')
-  );
+    const token=getToken();
 
-  await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${f.name}`,
-    {
-      method:"PUT",
-      headers:{
-        Authorization:`token ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:`upload ${f.name}`,
-        content
-      })
+    if(!token){
+        alert("請先輸入 Token");
+        return;
     }
-  );
 
-  loadFiles();
-}
+    const file=document.getElementById("file").files[0];
 
-async function loadFiles(){
-  const r=await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
-  );
-
-  const files=(await r.json())
-      .sort((a,b)=>a.name.localeCompare(b.name));
-
-  const ul=document.getElementById("list");
-  ul.innerHTML="";
-
-  files.forEach(f=>{
-    const li=document.createElement("li");
-
-    li.innerHTML=
-      `${f.name}
-      <a href="${f.download_url}" download>下載</a>
-      <button onclick="delFile('${f.name}','${f.sha}')">刪除</button>`;
-
-    ul.appendChild(li);
-  });
-}
-
-async function delFile(name,sha){
-  await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${name}`,
-    {
-      method:"DELETE",
-      headers:{
-        Authorization:`token ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:`delete ${name}`,
-        sha
-      })
+    if(!file){
+        alert("請選擇檔案");
+        return;
     }
-  );
 
-  loadFiles();
-}
+    const bytes=new Uint8Array(
+        await file.arrayBuffer()
+    );
 
-loadFiles();
-</script>
+    let binary='';
 
-</body>
-</html>
+    bytes.forEach(b=>{
+        binary+=String.fromCharCode(b);
+    });
+
+    const content=btoa(binary);
+
+    await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${folder}/${file.name}`,
+        {
+            method:"PUT",
+            headers:{
+                Authorization:`
