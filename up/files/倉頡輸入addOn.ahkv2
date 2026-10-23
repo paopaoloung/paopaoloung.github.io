@@ -1,0 +1,80 @@
+﻿
+#SingleInstance force
+#Requires AutoHotkey v2.0
+TraySetIcon("shell32.dll", 74)
+
+#Hotstring T P1 O	;文本模式/1級優先/忽略終止退格符
+
+
+readme00:="
+(
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    • 鼠標輔鍵-前：屏幕鍵盤
+    • 鼠標輔鍵-後：語音輸入
+    • LCtrl & RShift：英文大小寫轉換
+    • 輸入雙引號，出現2個且左移一格
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+)"
+
+
+
+
+;XButton1::!#=		;鼠標呼叫小剪貼板
+XButton1::#h		;鼠標呼叫小剪貼板
+XButton2::#^o		;鼠標呼叫屏幕鍵盤
+
+
+;@大小寫字母轉換
+~LCtrl & RShift::{
+	Send "^c"
+	Sleep 300
+	if (A_Clipboard == StrUpper(A_Clipboard))
+	A_Clipboard:=StrLower(A_Clipboard)	; 將文字轉為小寫
+	Else
+	A_Clipboard:=StrUpper(A_Clipboard)	; 將文字轉為大寫
+	Sleep 300
+	send "^v"
+}
+
++"::{
+    A_Clipboard:="`"`""
+    Sleep 300
+    send "^v"
+    Sleep 300
+    send "{Left}"
+}
+
+
+
+::afmbc::顯
+::anau::晚
+::aowy::晦涩难懂
+::hbu::自己
+::hru::乱
+::ipm::式
+::ipp::態
+::irp::感
+::kr::右
+::mt::开
+::nl::引
+::okr::知
+::omnn::例
+::omwm::僵屍
+::rji::戰
+::srln::剧
+::tehr::落
+::tmd::某
+::vfnau::絶
+::vid::樂
+::yrpa::詢
+
+
+
+
+
+;~Esc::exit0()
+exit0(*){
+ToolTip "【" A_ScriptName "】關閉ing..."
+sleep 2000
+ExitApp
+}
