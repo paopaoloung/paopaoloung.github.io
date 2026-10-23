@@ -31,7 +31,7 @@ button.del { background: #d73a49; width: auto; padding: 6px 12px; margin: 0; }
 <div id="fileList">加载中...</div>
 
 <script>
-  const OWNER = 'paopaoloung'; // ← 改成你自己的
+const OWNER = 'paopaoloung'; 
 const REPO = 'paopaoloung.github.io';
 const BRANCH = 'main';
 const FOLDER = 'up/files';
@@ -57,7 +57,8 @@ async function apiCall(method, path, body) {
   const token = getToken();
   if(!token) throw new Error('请先输入 Token');
   
-  const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
+  // ✅ 已修正：使用正確的 ://github.com 網址，並補上變數的 ${} 符號
+  const url = `https://://github.com/repos/${OWNER}/${REPO}/contents/${path}`;
     
   const options = {
     method,
@@ -78,19 +79,21 @@ async function apiCall(method, path, body) {
 }
 
 // ---------- 文件列表操作 ----------
-async function listFiles() {
-  const res = await apiCall('GET', FOLDER);
-  if (res.status === 404) return [];
-  const data = await res.json();
-  if (!Array.isArray(data)) return [data];
-  return data.filter(item => item.type === 'file');
-}
-
 async function refreshList() {
   const container = document.getElementById('fileList');
   container.innerHTML = '加载中...';
   try {
-    const files = await listFiles();
+    const res = await apiCall('GET', FOLDER);
+    
+    // 如果資料夾還不存在（代表還沒上傳過任何檔案）
+    if (res.status === 404) {
+      container.innerHTML = '<div>暂无文件</div>';
+      return;
+    }
+    
+    const data = await res.json();
+    const files = Array.isArray(data) ? data.filter(item => item.type === 'file') : [data];
+
     if (files.length === 0) {
       container.innerHTML = '<div>暂无文件</div>';
       return;
@@ -99,9 +102,12 @@ async function refreshList() {
     for (const file of files) {
       const div = document.createElement('div');
       const link = document.createElement('a');
-      link.href = file.download_url;
+      
+      // ✅ 已修正：點擊列表時，直接開啟您的 GitHub Pages 公開網址
+      link.href = `https://${OWNER}.github.io/${file.path}`;
       link.target = '_blank';
       link.textContent = file.name;
+      
       const delBtn = document.createElement('button');
       delBtn.className = 'del';
       delBtn.textContent = '删除';
@@ -131,7 +137,7 @@ async function uploadFile() {
 
   const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
   if (file.size > maxBytes) {
-    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前文件约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
+    alert(`文件过大！请选择小于 ${MAX_FILE_SIZE_MB} MB 的文件（当前 file 约 ${(file.size / 1024 / 1024).toFixed(1)} MB）`);
     return;
   }
 
