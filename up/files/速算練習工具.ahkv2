@@ -1,0 +1,299 @@
+﻿
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 全局變量初始化
+global numA := 0, numB:= 0, numC := 0, numD := 0
+global currentProblemText := ""
+edW := 60
+; GUI 介面構建
+MyGui := Gui("+AlwaysOnTop", "速算練習工具 v2")
+MyGui.SetFont("s12", "Microsoft JhengHei")
+
+; 創建分頁控制項
+Tab := MyGui.Add("Tab3", "", ["學習", "設置", "練習"])
+
+; --------------------------------------
+; 1. 學習頁面
+; --------------------------------------
+Tab.UseTab(1)
+MyGui.Add("Text", "x30 y60 w400 cBlue", "【速算學習秘籍】")
+txt0:="1. 頭同尾合十：十位數相同，個位數相加為10。`n   公式：A*(A+1) 接上 B*D`n2. 任意兩位數乘法：交叉相乘法。`n   (10*A + B) * (10*C + D)"
+MyGui.Add("Text", "x30 y90 w400 r5", txt0)
+
+; --------------------------------------
+; 2. 設置頁面
+; --------------------------------------
+Tab.UseTab(2)
+MyGui.Add("Text", "section x40", "")      ;佔位用
+MyGui.Add("Text", "", "")
+
+MyGui.Add("Text", "section", "被乘數 (A B)")
+editA := MyGui.Add("Edit", "xs Center w" edW, "")       ; Edit 1 (A)
+editB := MyGui.Add("Edit", "x+2 yp Center w" edW, "")      ; Edit 2 (B)
+
+MyGui.Add("Text", "x+5 yp Center", "❌")
+
+MyGui.Add("Text", "ys", "乘數 (C D)")
+editC := MyGui.Add("Edit", "Center w" edW, "")      ; Edit 3 (C)
+editD := MyGui.Add("Edit", "x+2 yp Center w" edW, "")      ; Edit 4 (D)
+
+; 說明小提示
+MyGui.SetFont("s9 cGray")
+txt1:="提示: `n• 留空: 隨機 1-9`n• [5-9]: 範圍取值`n• (10-A), (B-1), (A): 括號數學運算 (支持代數 A, B, C, D)"
+pSettingTxt1:=MyGui.Add("Text", "xs r15", txt1)
+MyGui.SetFont("s12 cDefault")
+btnGenerate := MyGui.Add("Button", "xs w150 h40", "生成題目並跳轉")
+btnGenerate.OnEvent("Click", OnGenerateClick)
+
+
+MyGui.SetFont("s12")
+
+
+sjcsj:=MyGui.Add("Button", "ys", "10+乘10+")
+sjcsj.OnEvent("Click", sjcsjfx)
+sjcsjfx(*){
+txt1:="
+(
+
+
+# 12×14=168
+• 被乘數+乘數的個位    12+4-----16
+• 尾×尾                        2×2--------8
+
+要「進位」：
+# 17×14=238
+• 被乘數+乘數的個位    17+4-----21
+• 尾×尾                        7×4--------28
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 1, 
+    editB.Value := ""
+    editC.Value := "1"
+    editD.Value := ""
+}
+
+
+
+sjcrys:=MyGui.Add("Button", "y+2", "10+乘任意数 16*475")
+sjcrys.OnEvent("Click", sjcrysfx)
+sjcrysfx(*){
+txt1:="
+(
+#13×21=273
+• 把乘數最大位拉出來---【2】
+• 把被乘數個位拉出來乘---[3]
+• 3×2+1---【7】
+• 個位相乘---3×1=【3】
+❗<=30不用進位
+
+要進位(太複雜)：
+#13×68=884
+• 大數減半，小數加倍：26×34
+26×34可以看作30的平方差！
+30²-4²=900-16
+=884
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 1, 
+    editB.Value := ""
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+MyGui.Add("Button", "y+2", "99乘任意数 99*23")
+MyGui.Add("Button", "y+2", "11乘任意数 11*34")
+MyGui.Add("Button", "y+2", "頭同，尾合十 34*36")
+MyGui.Add("Button", "y+2", "尾同，首合十 36*76")
+MyGui.Add("Button", "y+2", "双叠數，乘合十數 33*28")
+MyGui.Add("Button", "y+2", "兩位數末位是1的相乘 21*41")
+MyGui.Add("Button", "y+2", "任意2位數乘15, 25, 75")
+
+MyGui.Add("Text", "", "")      ;佔位用，好看一點
+
+; --------------------------------------
+; 3. 練習頁面
+; --------------------------------------
+Tab.UseTab(3)
+
+; 第一行：題目顯示
+MyGui.SetFont("s16 Bold")
+txtProblem := MyGui.Add("Text", "x40 y70 w380 Center", "請先到設置頁面生成題目")
+MyGui.SetFont("s12")
+
+; 第二行：答案輸入框
+MyGui.Add("Text", "x40 y132", "輸入答案 (Ans):")
+editAns := MyGui.Add("Edit", "x160 y130 w120 Center Number", "")
+
+; 第三行：歷史與對錯結果顯示
+MyGui.Add("Text", "x40 y182", "核對結果:")
+editAnsTxt := MyGui.Add("Edit", "x120 y180 w280 ReadOnly cGreen", "")
+
+MyGui.Show("")
+
+; 設置 GUI 級別的 Enter 鍵默認按鈕，讓輸入答案時按 Enter 能觸發核對
+btnSubmit := MyGui.Add("Button", "x-10 y-10 w0 h0 +Default", "") 
+btnSubmit.OnEvent("Click", OnAnsEnter)
+
+; 綁定視窗關閉事件
+MyGui.OnEvent("Close", GuiClose)
+
+
+; ==============================================================================
+; 邏輯與運算核心
+; ==============================================================================
+;@點擊「生成題目並跳轉」
+OnGenerateClick(*) {
+    GenerateNewProblem(editA.value, editB.value, editC.value, editD.value)
+    Tab.Choose(3)  
+    editAns.Focus() 
+}
+
+
+
+
+
+;@生成問題
+GenerateNewProblem(a0, b0, c0, d0) {
+Global
+
+numA:=genNum(a0)
+numB:=genNum(b0)
+numC:=genNum(c0)
+numD:=genNum(d0)
+
+num1:=numA . numB
+num2:=numC . numD
+
+txtProblem.value := numA . numB . " ❌ " . numC . numD . " = "
+;ans := Random(0, 1) ? "A" : "B"
+txtProblem.value := Random(0, 1) ? num1 . " ❌ " . num2 . " = " : num2 . " ❌ " . num1 . " = "
+
+}
+
+
+
+;@Edit控件A、B、C、D產生數值
+genNum(x0) {
+Global
+  x0:=StrReplace(x0, " ", "",,, -1)      ;取代所有空格
+
+
+;@@;留空時---生成隨機整數
+  if (x0==""){
+  Num:=Random(1, 9)
+  }
+
+;@@句式含A、B、C、D時代數取代
+x0:=StrReplace(x0, "A", numA)
+x0:=StrReplace(x0, "B", numB)
+x0:=StrReplace(x0, "C", numC)
+x0:=StrReplace(x0, "D", numD)
+
+  if (IsInteger(x0)){
+  Return x0
+  }
+
+
+
+;@@含開括號"(" ➕➖❌➗的運算
+  if InStr(x0, "(") {
+  x0:=RegExReplace(x0, "[\(\)]", "")       ;刪除括號
+
+  calA:=StrSplit(x0, "+", ".")                   ; 忽略句点. txt_s[1]
+  if (calA.Length==2)
+  Num:=calA[1] + calA[2]
+
+  calA:=StrSplit(x0, "-", ".")
+  if (calA.Length==2)
+  Num:=calA[1] - calA[2]
+
+  calA:=StrSplit(x0, "*", ".")
+  if (calA.Length==2)
+  Num:=calA[1] * calA[2]
+
+  calA:=StrSplit(x0, "/", ".")
+  if (calA.Length==2)
+  Num:=calA[1] / calA[2]
+
+  }
+
+Return Num
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+;@答案框按下 Enter 鍵觸發核對
+OnAnsEnter(*) {
+    global
+
+    userAns := Trim(editAns.Value)
+    if (userAns == "") {
+        userAns := "0" 
+    }
+    
+    numAB := (numA * 10) + numB
+    numCD := (numC * 10) + numD
+    correctResult := numAB * numCD
+    
+    isCorrect := (Integer(userAns) == correctResult)
+    resultSuffix := isCorrect ? " 對！" : " 錯x" . "----" . correctResult
+    
+    editAnsTxt.Value := txtProblem.value . userAns . resultSuffix
+    
+    if (isCorrect) {
+        editAnsTxt.SetFont("cGreen")
+    } else {
+        editAnsTxt.SetFont("cRed")
+    }
+
+;@@下一題---產生新問題
+    GenerateNewProblem(editA.value, editB.value, editC.value, editD.value)
+    editAns.Focus()
+}
+
+
+
+
+;@#HotIf WinActive(...) ---Enter
+#HotIf WinActive("ahk_id " MyGui.Hwnd)
+NumpadEnter::
+Enter:: {
+Global
+focused := MyGui.FocusedCtrl
+if (focused == editA || focused == editB || focused == editC || focused == editD) {
+  Tab.Choose(3) ; 跳轉到練習頁
+  OnGenerateClick()
+  editAns.Focus()
+  }
+
+Else if (focused == editAns)
+OnAnsEnter()
+}
+
+#HotIf
+
+
+
+
+
+
+
+
+; 視窗關閉時退出程式
+GuiClose(*) {
+    ExitApp()
+}
+
+
