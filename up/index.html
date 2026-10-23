@@ -73,54 +73,24 @@ async function saveToken(){
 
 async function upload(){
     let f=file.files[0];
-    if(!f)
-        return alert("請選擇檔案");
-    try{
-        let bytes=new Uint8Array(
-            await f.arrayBuffer()
-        );
+    if(!f)return alert("請選擇檔案");
 
-        let b64=btoa(
-            [...bytes]
-            .map(x=>String.fromCharCode(x))
-            .join("")
-        );
-        let r=await fetch(api("/"+f.name),{
-            method:"PUT",
-            headers:{
-                Authorization:`token ${getToken()}`,
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                message:`upload ${f.name}`,
-                content:b64
-            })
-        });
-        let data=await r.json();
-        if(!r.ok){
-            alert(
-                "上傳失敗\n"+
-                (data.message||"未知錯誤")
-            );
-            return;
-        }
-        // 立即顯示於第一列
-        list.insertAdjacentHTML(
-            "afterbegin",
-            `<tr id="temp_${Date.now()}">
-                <td>${f.name}<br>
-                <small>/up/files/${f.name}</small></td>
-                <td>處理中...</td>
-                <td>-</td>
-            </tr>`
-        );
-        // 清空檔案選擇
-        file.value="";
-        alert("上傳成功");
-    }catch(e){
-        console.error(e);
-        alert("上傳失敗");
-    }
+    let bytes=new Uint8Array(await f.arrayBuffer());
+    let b64=btoa([...bytes].map(x=>String.fromCharCode(x)).join(""));
+
+    await fetch(api("/"+f.name),{
+        method:"PUT",
+        headers:{
+            Authorization:`token ${getToken()}`,
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            message:`upload ${f.name}`,
+            content:b64
+        })
+    });
+
+    loadFiles();
 }
 
 async function delFile(name,sha){
