@@ -1,0 +1,716 @@
+﻿
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+TraySetIcon("C:\windows\System32\shell32.dll", 127)
+
+;全局變量初始化
+global numA := 0, numB:= 0, numC := 0, numD := 0
+global currentProblemText := ""
+edW := 60    ;edit控件寬度
+
+
+;@菜單：右click---設置頁
+rClickMenu := Menu()
+rClickMenu.Add("[...范圍取值...]", rClickFx)
+rClickMenu.Add("(...數學運算...)", rClickFx)
+rClickMenu.Add("(...10-A 補數 ...)", rClickFx)
+    rClickFx(ItemName, ItemPos, TargetMenu) {
+    A_Clipboard := ""
+    Send("^a")
+    Sleep 500
+    Send("^x")
+    Sleep 500
+
+    switch ItemName{
+    case "[...范圍取值...]":
+        SendInput("[" A_Clipboard "]")
+    case "(...數學運算...)":
+        SendInput("(" A_Clipboard ")")
+    case "(...10-A 補數 ...)":
+        SendInput("(10-" A_Clipboard ")")
+    default:
+        tooltip "未設定..."
+}
+    }
+
+
+ShowRkMenu := (*) => rClickMenu.Show()
+
+
+
+
+;@GUI介面構建
+MyGui := Gui("+AlwaysOnTop", "速算練習工具 v2")
+MyGui.SetFont("s12", "Microsoft JhengHei")
+
+
+
+
+;@創建分頁控制項
+Tab := MyGui.Add("Tab3", "Choose2", ["學習", "設置", "練習"])
+
+; --------------------------------------
+; 1. 學習頁面
+; --------------------------------------
+Tab.UseTab(1)
+MyGui.Add("Text", "x30 y60 w400 cBlue", "【速算學習秘籍】")
+txt0:="1. 頭同尾合十：十位數相同，個位數相加為10。`n   公式：A*(A+1) 接上 B*D`n2. 任意兩位數乘法：交叉相乘法。`n   (10*A + B) * (10*C + D)"
+MyGui.Add("Text", "x30 y90 w400 r5", txt0)
+
+; --------------------------------------
+;@2. 設置頁面
+; --------------------------------------
+Tab.UseTab(2)
+MyGui.Add("Text", "section x40", "")      ;佔位用
+MyGui.Add("Text", "", "")
+
+MyGui.Add("Text", "section", "被乘數 (A B)")
+;@@設置頁面---Edit 1-4 (A/B/C/D)
+editA := MyGui.Add("Edit", "xs Center w" edW, "")              ; Edit 1 (A)
+editB := MyGui.Add("Edit", "x+2 yp Center w" edW, "")      ; Edit 2 (B)
+MyGui.Add("Text", "x+5 yp Center", "❌")
+MyGui.Add("Text", "ys", "乘數 (C D)")
+editC := MyGui.Add("Edit", "Center w" edW, "")                   ; Edit 3 (C)
+editD := MyGui.Add("Edit", "x+2 yp Center w" edW, "")      ; Edit 4 (D)
+
+;@@說明小提示
+MyGui.SetFont("s9 cGray")
+txt2:="
+(
+*******************************************************
+【交叉相乘相加】、【左邊直乘】、【右邊直乘】  43×21=903
+     4    3
+×   2    1
+￣￣￣￣￣
+     8.....3
+中間：
+(4×1) + (3×2)
+=4+6
+=10  ---- 要進一；
+答案：903
+)"
+
+txt1:="提示: `n• 留空: 隨機 1-9`n• [5-9]: 範圍取值`n• (10-A), (B-1), (A): 括號數學運算 (支持代數 A, B, C, D)`n" . txt2
+pSettingTxt1:=MyGui.Add("Text", "xs r15", txt1)
+
+MyGui.SetFont("s12 cDefault")
+;@@按鈕：生成題目並跳轉---OnGenerateClick
+btnGenerate := MyGui.Add("Button", "xs w150 h40", "生成題目並跳轉")
+btnGenerate.OnEvent("Click", OnGenerateClick)
+
+
+dbNumSqtxt:="
+(
+
+━━━━━━━━━━
+11² = 121 （對稱數，最好記）
+12² = 144 （一打的平方，常出現在計數中）
+13² = 169
+14² = 196 （💡 13 與 14 的巧妙連動：答案剛好是 169 和 196 顛倒過來！）
+15² = 225 （尾數是 5 的平方，用口訣：頭同尾合十）
+
+16² = 256 （電腦容量常見數字：256MB)
+
+17² = 289
+18² = 324
+19² = 361 （💡17、18、19 的頭兩位別是尾數×4；尾数：分别是 7² 的 9、8² 的 4、9² 的 1）
+
+━━━━━━━━━━
+)"
+;@@按鈕：雙位數²
+dbNumSq := MyGui.Add("Button", "yp x+2 hp", "雙位數²")
+dbNumSq.OnEvent("Click", (*)=>pSettingTxt1.Value:=dbNumSqtxt)
+
+MyGui.SetFont("s12")
+
+;@@　　• 10+乘10+
+sjcsj:=MyGui.Add("Button", "ys", "10+乘10+")
+sjcsj.OnEvent("Click", sjcsjfx)
+sjcsjfx(*){
+txt1:="
+(
+
+
+# 12×14=168
+• 被乘數+乘數的個位    12+4-----16
+• 尾×尾                        2×2--------8
+
+要「進位」：
+# 17×14=238
+• 被乘數+乘數的個位    17+4-----21
+• 尾×尾                        7×4--------28
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 1, 
+    editB.Value := ""
+    editC.Value := "1"
+    editD.Value := ""
+}
+
+
+
+;@@　　• 20+乘20+
+esjCesj:=MyGui.Add("Button", "y+2", "20+乘20+")
+esjCesj.OnEvent("Click", esjCesjfx)
+esjCesjfx(*){
+txt1:="
+(
+• (被乘數+乘數個位)×2 
+• 後面直接拼接(個位×個位)。
+22 x 24 
+(22+4)×2=52
+拼接(2×4=8)
+=528
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 2
+    editB.Value := ""
+    editC.Value := 2
+    editD.Value := ""
+}
+
+
+;@@　　• 90+乘90+
+jsjCjsj:=MyGui.Add("Button", "y+2", "90+乘90+")
+jsjCjsj.OnEvent("Click", jsjCjsjfx)
+jsjCjsjfx(*){
+txt1:="
+(
+以 100 為基準
+# 96 × 93 =8928
+找被乘數及乘數的補數：---4、7
+• 減對方補數 ----------96-7 = 89 (或93-4)
+• 補數相乘 --------------4×7= 28
+
+# 98 × 97 = 9506
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 9
+    editB.Value := ""
+    editC.Value := 9
+    editD.Value := ""
+}
+
+
+;@@　　• 45+乘55+
+ssjCwsj:=MyGui.Add("Button", "y+2", "45+乘55+")
+ssjCwsj.OnEvent("Click", ssjCwsjfx)
+ssjCwsjfx(*){
+txt1:="
+(
+以 50 為基準
+前兩位＝25 ＋ 兩數與 50 的差距和 
+後兩位＝兩數差距相乘。
+大於 50 記為「正」，小於 50 記為「負」
+
+52× 54
+。差距分別是+2和+4。
+。前半段：25 + (2 + 4) = 31。
+。後半段：2×4=08。
+=3108
+
+(一正一負)：48×53
+差距分別是-2和+3。
+前半段：25+(-2+3) = 26。
+後半段：-2×3=-6(不滿兩位,所以從2600扣掉6)
+=2594
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 4
+    editB.Value := "[5-9]"
+    editC.Value := 5
+    editD.Value := "[1-5]"
+}
+
+
+
+
+
+;@@　　• 10+乘任意数
+sjcrys:=MyGui.Add("Button", "y+2", "10+乘任意数 16*475")
+sjcrys.OnEvent("Click", sjcrysfx)
+sjcrysfx(*){
+txt1:="
+(
+#13×21=273
+• 把乘數最大位拉出來---【2】
+• 把被乘數個位拉出來乘---[3]
+• 3×2+1---【7】
+• 個位相乘---3×1=【3】
+❗<=30不用進位
+
+要進位(太複雜)：
+#13×68=884
+• 大數減半，小數加倍：26×34
+26×34可以看作30的平方差！
+30²-4²=900-16
+=884
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 1
+    editB.Value := ""
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+
+;@@　　• 10位數相差一 ，尾互补
+swxcyWhb:=MyGui.Add("Button", "y+2", "10位數相差一 ，尾互补 94*86")
+swxcyWhb.OnEvent("Click", swxcyWhbfx)
+swxcyWhbfx(*){
+txt1:="
+(
+# 62×78           7²-1,    8²--100                 =4836
+•  取大数，头乘头减1          (7×7)-1=48
+•  尾乘尾取补数                   100-(8×8)=36
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := ""
+    editC.Value := "(A-1)"
+    editD.Value := "(10-B)"
+}
+
+
+
+;@@　　• 99乘任意数
+jjcrys:=MyGui.Add("Button", "y+2", "99乘任意数 99*23")
+jjcrys.OnEvent("Click", jjcrysfx)
+jjcrysfx(*){
+txt1:="
+(
+#99×84	8316
+• 答案前2位：乘數-1
+• 答案後2位：乘數加起來是100的數 (即100-乘數---即十位湊9、個位湊10)
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 9
+    editB.Value := 9
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+;@@　　• 11乘任意数
+yyCrys:=MyGui.Add("Button", "y+2", "11乘任意数 11*34")
+yyCrys.OnEvent("Click", yyCrysfx)
+yyCrysfx(*){
+txt1:="
+(
+#11×23125=254375
+• 頭尾不變，中間相加
+• 和满十要进一
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 1
+    editB.Value := 1
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+;@@　　• 頭同，尾合十
+ttWhs:=MyGui.Add("Button", "y+2", "• 頭同，尾合十 34*36")
+ttWhs.OnEvent("Click", ttWhsfx)
+ttWhsfx(*){
+txt1:="
+(
+█████[一個相同、一個合十]█████
+尾：一定是尾×尾；
+頭：相同--乘+1；           (其實是頭×頭+頭；尾合5時加半頭；)
+        相合--相乘後+尾；
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 29×21=609    ---記：頭同尾合十
+• 十位乘十位加一２*(2+1)＝６
+• 尾乘尾9×1＝09
+※个位相乘，不够两位数要用0占位。
+
+# 94×96=9024
+# 74×76=5624
+頭×(頭+1)、尾×尾
+⚡尾同頭合十：頭×頭+尾、尾×尾
+
+
+PS. 尾合5時：
+# 41×44 = 1804
+4×4 + (4÷2)
+= 16 + 2
+= 18
+
+1×4
+=04
+=1804!
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := ""
+    editC.Value := "A"
+    editD.Value := "(10-B)"
+}
+
+
+;@@　　• 尾同，首合十
+wtShs:=MyGui.Add("Button", "y+2", "• 尾同，首合十 36*76")
+wtShs.OnEvent("Click", wtShsfx)
+wtShsfx(*){
+txt1:="
+(
+█████[一個相同、一個合十]█████
+尾：一定是尾×尾；
+頭：相同--乘+1；
+        相合--相乘後+尾；
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 43×63=2709    ---記：尾同頭合十
+• 头乘头加尾4×6+3=27
+• 尾乘尾3×3=09
+• 个位相乘，不够两位数要用0占位。
+
+頭×頭+尾、尾×尾
+⚡尾同頭合十：頭×(頭+1)、尾×尾
+
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := ""
+    editC.Value := "(10-A)"
+    editD.Value := "B"
+}
+
+
+
+
+;@@　　• 頭同尾是5
+ttws5:=MyGui.Add("Button", "y+2", "• 頭同、尾是5")
+ttws5.OnEvent("Click", ttws5fx)
+ttws5fx(*){
+txt1:="
+(
+# 75x75=5625
+• 頭×(頭+1)
+• 後面直接無腦寫 25。
+(7×8=56)
+補上 25 
+=5625
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := 5
+    editC.Value := "A"
+    editD.Value := 5
+}
+
+
+;@@　　• 頭相差1，尾是5
+txc1ws5:=MyGui.Add("Button", "y+2", "頭相差1，尾是5")
+txc1ws5.OnEvent("Click", txc1ws5fx)
+txc1ws5fx(*){
+txt1:="
+(
+
+# 35 x 45 =1575
+• 小頭×(大頭+1) ----------(3 x 5)=15
+• 尾固定填 75
+=1575
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := 5
+    editC.Value := "(A-1)"
+    editD.Value := 5
+}
+
+
+
+;@@　　• 双叠數，乘合十數
+sdsChss:=MyGui.Add("Button", "y+2", "双叠數，乘合十數 33*28")
+sdsChss.OnEvent("Click", sdsChssfx)
+sdsChssfx(*){
+txt1:="
+(
+#66×37=2442
+•  头乘(头+１)----6×(3+1)
+•  尾乘尾----------7×6=42
+※个位相乘，不够两位数要用0占位。
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := "A"
+    editC.Value := ""
+    editD.Value := "(10-C)"
+}
+
+;@@　　• 兩位數末位是1相乘
+lwmssyxc:=MyGui.Add("Button", "y+2", "兩位數末位是1相乘 21*41")
+lwmssyxc.OnEvent("Click", lwmssyxcfx)
+lwmssyxcfx(*){
+txt1:="
+(
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := 9
+    editB.Value := 9
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+;@@　　• 任意2位數乘15, 25, 75
+rylwsC152575:=MyGui.Add("Button", "y+2", "任意2位數乘15, 25, 75")
+rylwsC152575.OnEvent("Click", rylwsC152575fx)
+rylwsC152575fx(*){
+txt1:="
+(
+任意數 乘 25：原數 ÷ 4 → 補上餘數對應的尾數。
+餘 0 → 補 00
+餘 1 → 補 25
+餘 2 → 補 50
+餘 3 → 補 75
+
+43 × 25
+43 ÷ 4 = 10 餘 3
+=10 後面補 75
+=1075
+
+)"
+pSettingTxt1.Value:=txt1
+    editA.Value := ""
+    editB.Value := ""
+    editC.Value := ""
+    editD.Value := ""
+}
+
+
+
+
+
+
+
+MyGui.Add("Text", "", "")      ;佔位用，好看一點
+
+
+
+
+
+
+
+
+; --------------------------------------
+;@3. 練習頁面
+; --------------------------------------
+Tab.UseTab(3)
+
+;@@第一行：題目顯示
+MyGui.SetFont("s16 Bold")
+txtProblem := MyGui.Add("Text", "x40 y70 w380 Center", "請先到設置頁面生成題目")
+MyGui.SetFont("s12")
+
+;@@第二行：答案輸入框
+MyGui.Add("Text", "x40 y132", "輸入答案 (Ans):")
+editAns := MyGui.Add("Edit", "x160 y130 w120 Center Number", "")
+editAns.OnEvent("Focus", (*) =>Send("^a"))
+;❗不能=>Send "^a" 會出錯：沒括號，單行縮寫中會以為要把一個名為 Send 的 fx 與字串做特殊傳遞
+
+
+;@@第三行：歷史與對錯結果顯示
+MyGui.Add("Text", "x40 y182", "核對結果:")
+editAnsTxt := MyGui.Add("Edit", "x120 y180 w280 ReadOnly cGreen", "")
+
+MyGui.Show("")
+
+
+
+
+
+
+
+
+
+
+;@[Enter] 鍵：OnAnsEnter---觸發核對
+btnSubmit := MyGui.Add("Button", "x-10 y-10 w0 h0 +Default", "") 
+btnSubmit.OnEvent("Click", OnAnsEnter)
+
+MyGui.OnEvent("Close", GuiClose)
+
+
+
+
+
+; ==============================================================================
+; 邏輯與運算核心
+; ==============================================================================
+;@OnGenerateClick---功能：點擊「生成題目並跳轉」
+OnGenerateClick(*) {
+    GenerateNewProblem(editA.value, editB.value, editC.value, editD.value)
+    Tab.Choose(3)  
+    editAns.Focus() 
+}
+
+
+
+
+
+;@GenerateNewProblem---功能：生成問題
+GenerateNewProblem(a0, b0, c0, d0) {
+Global
+
+numA:=genNum(a0)
+numB:=genNum(b0)
+numC:=genNum(c0)
+numD:=genNum(d0)
+
+num1:=numA . numB
+num2:=numC . numD
+
+txtProblem.value := numA . numB . " ❌ " . numC . numD . " = "
+;ans := Random(0, 1) ? "A" : "B"
+txtProblem.value := Random(0, 1) ? num1 . " ❌ " . num2 . " = " : num2 . " ❌ " . num1 . " = "
+
+}
+
+
+
+;@genNum---功能：Edit控件A、B、C、D產生數值
+genNum(x0) {
+Global
+  x0:=StrReplace(x0, " ", "",,, -1)      ;取代所有空格
+
+
+;@@;留空時---生成隨機整數
+  if (x0==""){
+  Num:=Random(1, 9)
+  }
+
+;@@句式含A、B、C、D時代數取代
+x0:=StrReplace(x0, "A", numA)
+x0:=StrReplace(x0, "B", numB)
+x0:=StrReplace(x0, "C", numC)
+x0:=StrReplace(x0, "D", numD)
+
+  if (IsInteger(x0)){
+  Return x0
+  }
+
+
+
+;@@含開括號"(" ➕➖❌➗的運算
+  if InStr(x0, "(") {
+  x0:=RegExReplace(x0, "[\(\)]", "")       ;刪除括號
+
+  calA:=StrSplit(x0, "+", ".")                   ;以+號分隔數值，忽略句点. txt_s[1]
+  if (calA.Length==2)
+  Num:=calA[1] + calA[2]
+
+  calA:=StrSplit(x0, "-", ".")
+  if (calA.Length==2)
+  Num:=calA[1] - calA[2]
+
+  calA:=StrSplit(x0, "*", ".")
+  if (calA.Length==2)
+  Num:=calA[1] * calA[2]
+
+  calA:=StrSplit(x0, "/", ".")
+  if (calA.Length==2)
+  Num:=calA[1] / calA[2]
+
+  }
+
+
+;@@含開括號"[" ➕➖❌➗的運算
+  if InStr(x0, "[") {
+  x0:=RegExReplace(x0, "[\[\]]", "")       ;刪除[]
+  calA:=StrSplit(x0, "-", ".")                    ;以-號分隔數值，忽略句点. txt_s[1]
+  if (calA.Length==2)
+  Num:=Random(calA[1], calA[2])
+  }
+
+Return Num
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+;@OnAnsEnter---功能：答案框按下 Enter 鍵觸發核對
+OnAnsEnter(*) {
+    global
+
+    userAns := Trim(editAns.Value)
+    if (userAns == "") {
+        userAns := "0" 
+    }
+    
+    numAB := (numA * 10) + numB
+    numCD := (numC * 10) + numD
+    correctResult := numAB * numCD
+    
+    isCorrect := (Integer(userAns) == correctResult)
+    resultSuffix := isCorrect ? " 對！" : " 錯x" . "----" . correctResult
+    
+    editAnsTxt.Value := txtProblem.value . userAns . resultSuffix
+    
+    if (isCorrect) {
+        editAnsTxt.SetFont("cGreen")
+    } else {
+        editAnsTxt.SetFont("cRed")
+    }
+
+;@@下一題---產生新問題
+    GenerateNewProblem(editA.value, editB.value, editC.value, editD.value)
+    editAns.Focus()
+}
+
+
+
+
+;@#HotIf WinActive(...) ---Enter
+#HotIf WinActive("ahk_id " MyGui.Hwnd)
+NumpadEnter::
+Enter:: {
+Global
+focused := MyGui.FocusedCtrl
+if (focused == editA || focused == editB || focused == editC || focused == editD) {
+  Tab.Choose(3) ; 跳轉到練習頁
+  OnGenerateClick()
+  editAns.Focus()
+  }
+
+Else if (focused == editAns)
+OnAnsEnter()
+}
+
+
+$RButton:: {
+    MouseGetPos , , , &ctrlHwnd, 2
+    if (ctrlHwnd = editA.Hwnd || ctrlHwnd = editB.Hwnd || ctrlHwnd = editC.Hwnd || ctrlHwnd = editD.Hwnd) {
+      rClickMenu.Show()
+    }
+    else
+    Send("{RButton}")
+
+}
+
+#HotIf
+
+
+
+
+
+
+
+
+; 視窗關閉時退出程式
+GuiClose(*) {
+    ExitApp()
+}
+
+
