@@ -45,6 +45,11 @@ a:hover{
 <body>
 <h2>檔案同步8w</h2>
 <div class="row">
+  <input type="text" id="token" placeholder="GitHub Token">
+  <button onclick="saveToken()">登入</button>
+</div>
+<font color="white" size=2>github_pat_11A7UNAAA0eawLmt2kC0GI_qiGQBNVZcXYV5nf6GIw7bPI6qiORZVBBY1ikovLpQ6D5U2OKJ73TYdb9q</font>
+<div class="row">
   <input type="file" id="file">
   <button onclick="upload()">上傳</button>
 </div>
@@ -62,15 +67,33 @@ const owner="paopaoloung";
 const repo="paopaoloung.github.io";
 const folder="up/files";
 const gas="https://script.google.com/macros/s/AKfycbwBUY2s_PSMekpegdNNqoaT0Y3EeUY-_hCWLeDQibnCu9oPzhUf0sk8iTh4MKiDsaLR/exec";
-const GITHUB_TOKEN="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";
+const token=document.getElementById("token");
 const file=document.getElementById("file");
 const list=document.getElementById("list");
+const tk=()=>localStorage.github_token||"";
 const api=(p="")=>
-  `https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p}`;
+`https://api.github.com/repos/${owner}/${repo}/contents/${folder}${p}`;
+token.value=tk();
 function headers(){
   return {
-    Authorization:`token ${GITHUB_TOKEN}`
+    Authorization:`token ${tk()}`
   };
+}
+async function saveToken(){
+  const t=token.value.trim();
+  if(!t) return alert("請輸入Token");
+  localStorage.github_token=t;
+  try{
+    const r=await fetch(api(),{
+      headers:headers()
+    });
+    if(!r.ok) throw new Error();
+    alert("登入成功");
+    loadFiles();
+  }catch{
+    localStorage.removeItem("github_token");
+    alert("Token無效");
+  }
 }
 async function fileToBase64(f){
   return new Promise(resolve=>{
@@ -83,19 +106,16 @@ async function fileToBase64(f){
 }
 async function upload(){
   const f=file.files[0];
-  if(!f){
-    alert("請選擇檔案");
-    return;
-  }
+  if(!f) return alert("請選擇檔案");
   try{
     let sha="";
-    const check=await fetch(api("/"+encodeURIComponent(f.name)),{
+    const check=await fetch(api("/"+f.name),{
       headers:headers()
     });
     if(check.ok){
       sha=(await check.json()).sha;
     }
-    const r=await fetch(api("/"+encodeURIComponent(f.name)),{
+    const r=await fetch(api("/"+f.name),{
       method:"PUT",
       headers:{
         ...headers(),
@@ -109,19 +129,15 @@ async function upload(){
     });
     const data=await r.json();
     if(!r.ok){
-      alert(data.message||"上傳失敗");
-      return;
+      return alert(data.message);
     }
     try{
       await fetch(gas,{
         method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
         body:JSON.stringify({
           action:"add",
           name:f.name,
-          url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${encodeURIComponent(f.name)}`,
+          url:`https://raw.githubusercontent.com/${owner}/${repo}/main/${folder}/${f.name}`,
           sha:data.content.sha
         })
       });
@@ -137,11 +153,9 @@ async function upload(){
   }
 }
 async function delFile(name,sha){
-  if(!confirm("確定刪除 "+name+" ?")){
-    return;
-  }
+  if(!confirm("確定刪除 "+name+" ?")) return;
   try{
-    const r=await fetch(api("/"+encodeURIComponent(name)),{
+    const r=await fetch(api("/"+name),{
       method:"DELETE",
       headers:{
         ...headers(),
@@ -153,15 +167,11 @@ async function delFile(name,sha){
       })
     });
     if(!r.ok){
-      alert("刪除失敗");
-      return;
+      return alert("刪除失敗");
     }
     try{
       await fetch(gas,{
         method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
         body:JSON.stringify({
           action:"delete",
           name:name
@@ -183,24 +193,21 @@ async function loadFiles(){
     const files=await r.json();
     list.innerHTML=files
       .sort((a,b)=>
-        String(a.name||"").localeCompare(
-          String(b.name||""),
-          "zh-Hant"
-        )
+        String(a.name).localeCompare(String(b.name))
       )
       .map(f=>`
-        <tr>
-          <td>
-            <a href="${f.url}" target="_blank">
-              ${f.name}
-            </a>
-          </td>
-          <td style="text-align:center">
-            <button onclick="delFile('${String(f.name).replace(/'/g,"\\'")}','${f.sha||""}')">
-              刪除
-            </button>
-          </td>
-        </tr>
+      <tr>
+        <td>
+          <a href="${f.url}" target="_blank">
+            ${f.name}
+          </a>
+        </td>
+        <td style="text-align:center">
+          <button onclick="delFile('${f.name}','${f.sha}')">
+            刪除
+          </button>
+        </td>
+      </tr>
       `)
       .join("");
   }catch(e){
@@ -214,7 +221,9 @@ async function loadFiles(){
     `;
   }
 }
-window.onload=loadFiles;
+window.onload=()=>{
+  if(tk()) loadFiles();
+};
 </script>
 </body>
 </html>
