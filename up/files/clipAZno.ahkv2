@@ -1,0 +1,470 @@
+﻿
+
+
+
+#SingleInstance force
+TraySetIcon("shell32.dll", 335)
+
+~CapsLock & Enter::reload
+
+#Alt::SwitchLanguage(0x4040404, 1) ;0英/1中
+
+
+
+
+
+
+SetCapsLockState "Off"
+
+
+
+/*---------------------------------
+~Lctrl & space::{
+send "{Lctrl D}{space}{Lctrl U}"
+SetCapsLockState !GetKeyState("CapsLock", "T")
+tooltip "dfdfd"
+}
+---------------------------------*/
+
+
+/*---------------------------------
+　　⬛預設SetCapsLockState "AlwaysOn"使中文輸入狀態下shift+字母是小寫
+　　⬛CapsLock+Enter
+---------------------------------*/
+
+
+
+;@說明
+readme0:= "
+(
+　　━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━　　
+　　● Shift + win + 字母[a-z] ........加入字母剪貼薄
+　　● CapsLock + 字母[a-z] ...........貼上
+　　　• win + 小鍵盤[1-9].............複制
+　　　• CapsLock + 小鍵盤[1-9].........貼上
+　　● 左+右Shift..............輸入小窗
+　　　• 左+右Shift 框內留空.....輸入等號=
+　　　----------------------------------------------
+　　　CapsLock + 小鍵盤[1].........預設為下划線_
+　　　----------------------------------------------
+　　　
+　　CapsLock + [?]  .........說明
+　　CapsLock & Enter  .......reload
+　　Win & Alt  ............強制倉頡[中]
+　　左右Shift  ..............符號指令輸入窗口(灰)
+　　　•打開窗口時預設倉頡[英]➕Caplock Off
+　　　•關閉時預設倉頡[中]➕Caplock On方便（按Shift時輸入小寫英文）
+　　━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+)"
+
+
+
+;@██[小窗口輸入符號]██全形-大d/分大小寫
+symbHS:=Map(
+	"010", "%",	;⬛象形-百分號
+	"oa", "@",	;⬛零-外圓圈；a,
+	"1", "|",		
+	"11", "||",	
+	"77", "「」",	;⬛象形—說
+	"s:", "「」",	;⬛象形—說
+	"><", "*",		;⬛8 看起來圓圓滿滿，像八角星星號
+
+	"a", "&",	;⬛and
+	"aa", "&&",	;⬛and*2
+	"b", "%",	;⬛百分號
+	"`:", "：",		;大-冒號(全形)
+	"dd", "==",	;⬛等號
+	"e", "=",		;⬛equal
+	"e ", "=`"`"`;",	;⬛equal + 空格
+	"ee", "==",	;⬛equal
+	"f", "`;",		;⬛分號
+	"g", "!",		;⬛感嘆號
+	"m", ":",		;⬛冒號
+	"ne", "!=",	;⬛not equal
+	"o", "||",		;⬛或 Or
+	"q", "$",		;⬛錢
+	"s", "`"`"",	;雙引號
+	"u", "_",		;⬛下劃線-underline
+	"up", "^",	;大的--小括號
+
+	"j", "#",		;⬛井號
+	"J", "※",	;⬛粗、星星
+	"x", "()",		;⬛小括號---備選c
+	"X", "（）",	;大的--小括號
+	"x ", "()`;",	;⬛小括號加分號 + 空格
+	"z", "[]",		;⬛中括號---備選u，倒下的
+	"Z", "【】",	;⬛粗中括號
+	"d", "{}",		;⬛大括號---不用3因為小鍵盤太遠
+	"d ", "{￠    ￠}",	;大括號 + 空格-隔2行
+
+
+	"  ", "　　",	;⬛全形空格x2
+	" ", "    ",	;⬛1x空格 = 4小空格
+	"ul", "_",		;underline 下劃線
+	"sx", "~",	;蛇線
+
+	".", "•",		;⬛粗點+
+	"  .", "　　•",	;⬛粗點+
+	"..", "●",		;⬛粗點++
+	"0", "○",		;⬛空點
+	"  0", "　　○",	;⬛空點
+	"0.", "◉",	;⬛零+點
+	"<", "<>",	;⬛左箭咀
+	">", "➜",	;⬛右箭咀
+	"<<", "《》",	;⬛左箭咀*2
+	"cj", "➕",	;⬛j= +加號
+	"+", "➕",	;⬛加號轉換
+	"c-", "➖",	;⬛粗，減號
+	"-", "➖",	;⬛減號轉換
+	"cx", "❌",	;⬛+乘號
+	"*", "❌",	;⬛星號/乘號轉換
+	"c/", "➗",	;⬛粗、除
+	"/", "➗",	;⬛除號轉換
+	"cd", "🟰",	;⬛粗、等
+	"cg", "❗",	;⬛粗-感嘆號
+	"cs", "dotnet run",	;在C#控制台執行文件
+	"cs0", "dotnet build",	;在C#控制台查錯，但不執行
+	"v", "✓",		;⬛細v
+	"V", "✔️",	;⬛粗V=粗剔號
+	"cz", "⬛",	;⬛粗正(方形)
+	"czz", "██",
+	"xx", "✕",	;⬛細X
+	"zz", "``",	;⬛z➜重音符（重复最後字符代表其他選擇）
+	"/n", "💢",           ;怒
+	"/save", "💾",	;保存
+	"/dp", "💡",	;燈泡
+	"/sd", "⚡",	;閃電
+	"/gj", "🛠️",	;工具
+	"/fdj", "🔍",	;放大鏡
+	"/dp", "🛡️",	;盾牌
+	"/setting", "⚙️",	;
+	"/nr", "🕵️",	;男人
+	"/q", "🧱",	;
+	"/jd", "🚨",	;
+	"/z", "💥",	;炸
+	"/x", "★",	;星
+	"/xm", "🐼",	;熊貓
+
+
+
+	"I", "Ⅰ",
+	"II", "Ⅱ",
+	"III", "Ⅲ",
+	"IV", "Ⅳ",
+	"VI", "Ⅵ",
+	"VII", "Ⅶ",
+	"VIII", "Ⅷ",
+)
+
+
+
+
+;@━━━━━━━━━━━[小窗口輸入符號]━━━━━━━━━
+
+; -------------------------------------------------------------
+; 1. 監聽雙 Shift 組合鍵（左+右 或 右+左 均可觸發）
+; -------------------------------------------------------------
+~LShift & RShift::
+{
+    SetCapsLockState "Off"
+    global MainGui, EditBox
+    
+    ; 如果視窗已經存在，就先銷毀它重新整理
+    if IsSet(MainGui) && MainGui
+        MainGui.Destroy()
+
+    ; 建立極簡 GUI 視窗
+    MainGui := Gui("-Caption +AlwaysOnTop +ToolWindow")
+    MainGui.BackColor := "1E1E1E" ; 設定視窗背景色為深黑色
+    MainGui.MarginX := 0
+    MainGui.MarginY := 0
+    
+    ; 新增一個文字輸入框，寬度 120 像素，字體白色
+    MainGui.SetFont("s16 cWhite  bold", "Segoe UI")
+    EditBox := MainGui.Add("Edit", "w120 cWhite Background333333 -E0x200") ; -E0x200 移除預設的立體邊框
+    
+    ; 綁定主鍵盤 Enter 與 小鍵盤 Enter 的事件
+    MainGui.Add("Button", "w0 h0 Hidden Default").OnEvent("Click", ProcessInput)
+    
+    ; 監聽 ESC 鍵，按 ESC 可以直接關閉小視窗
+    MainGui.OnEvent("Escape", (*) => MainGui.Destroy())
+    
+    ; -------------------------------------------------------------
+    ; 2. 獲取打字游標位置並定位
+    ; -------------------------------------------------------------
+    CoordMode "Caret", "Screen"
+    CoordMode "Mouse", "Screen"
+    
+    if CaretGetPos(&caretX, &caretY)
+    {
+        posX := caretX
+        posY := caretY + 40				;⬛游標位置
+    }
+    else
+    {
+        MouseGetPos(&mouseX, &mouseY)
+        posX := mouseX
+        posY := mouseY + 22
+    }
+    MainGui.Show("X" posX " Y" posY) 
+    
+    ; 設定視窗半透明（190 代表大約 75% 不透明度）
+    WinSetTransparent(150, MainGui.Hwnd)
+    
+    ; 強制將打字焦點鎖定到小視窗的輸入框內
+    EditBox.Focus()
+    WinActivate(MainGui.Hwnd)
+    
+    ; 強制切換目前的輸入法為「美式英文 (0x0409)」
+    ; PostMessage(0x50, 0, 0x04090409, EditBox.Hwnd)
+
+    ;強制切換目前的輸入法為 - 倉頡「英」
+    SwitchLanguage(0x4040404, 0)
+}
+
+
+; ---------------------------
+; 3. 處理輸入與剪貼簿貼上
+; ---------------------------
+ProcessInput(*)				;⬛貼上內容
+{
+    global MainGui, EditBox
+    userInput := EditBox.Value
+    MainGui.Destroy()
+
+    SwitchLanguage(0x4040404, 1)  ;回复輸入法為---倉頡「中」
+    ;SetCapsLockState("On")
+
+
+for str, paste0 in symbHS
+{
+
+  if InStr(paste0, "￠")
+  paste0:=StrReplace(paste0, "￠", "`r`n",,, -1)
+
+  if (userInput==""){
+  SendInput "="
+  Break
+  }
+
+
+
+  if (userInput == str){
+     SendInput "{Text}" paste0
+     sleep 300
+
+
+  if StrLen(paste0)==2{
+     send "{left}"			;退1格
+     Break
+    }
+
+  if RegExMatch(paste0, "[`}`)]"){
+     Send "{Left 2}"			;退2格
+     Break
+  }
+
+  if InStr(paste0, ");"){
+    send "{left 2}"
+    }
+
+   } ;//if (userInput == str)
+
+ }
+}
+
+;@━━━━━━━━━━━ /[>常用符號]/ ━━━━━━━━━
+
+
+
+
+
+
+
+
+
+
+
+
+
+;@━━━━━━━━━━━[鍵盤+小鍵盤-符號]━━━━━━━━━
+symb0:=Map(
+	"-", "_",
+	"0", "()",
+	"1", "_",
+	"2", "=",
+	"3", "{}",
+	"5", "&",	;And
+	"7", "[]",
+	"8", "$",
+	"9", "#",
+
+	"a", "&",	;And
+	"b", "`%",	;百分號
+	"d", "={}",
+	"f", "；",		;全形的分號
+	"i", "|",		;象形
+	"j", "#❗",	;驚❗
+	"k", "()",
+	"l", "$",		;L錢號的中間
+	"m", "_",		;倉頡拆碼m是一
+	"o", "@",	;外面1個圈
+	"p", "`%",	;外面1個圈
+	"q", "￠$",	;錢號
+	"r", "dotnet run",
+	"s", "💀",	;死亡
+	"t", "☑️✔️",	;tick
+	"v", "^",
+	"w", "卍",
+	"x", "✨",	;星號-形狀
+	"z", "⬛",
+	;"y", "`"`"",
+
+)
+	;"", "",
+
+
+
+varClip := Map()				;複制內容變量
+
+
+
+
+;@生成 a-z 字母及 hotKey---Loop 26{}
+Loop 26 {
+    hk0 := Chr(A_Index + 96)		;生成 a-z 字母
+    varClip[hk0] := ""			;預設內容為空值
+    Hotkey("+#" hk0, aZcopy)		;複制
+    ;Hotkey "~CapsLock & " hk0, azPaste	;貼上
+    Hotkey "CapsLock & " hk0, azPaste	;貼上
+
+	for z0 in symb0{			;空值預設-->符號
+	varClip[z0] := symb0[z0]
+	}
+
+	;⬛小鍵盤1-9
+	if A_Index <= 10 {
+		y:=A_Index
+		if y = 10  ;處理小鍵盤0
+		y := "0"
+	hk0 := String(y)				;將數字轉成字符串使用
+	varClip[hk0] := ""				;預設內容為空值
+	Hotkey("#Numpad" hk0, aZcopy)		;複制
+	;Hotkey "~CapsLock & Numpad" hk0, azPaste	;貼上
+	Hotkey "CapsLock & Numpad" hk0, azPaste	;貼上
+	}
+}
+
+
+
+CapsLock & ?::{
+	tooltip readme0
+	SetTimer () => ToolTip(), -15000
+}
+
+
+CapsLock & .::{
+  A_Clipboard:="●•"
+  sdv()
+}
+
+
+
+
+CapsLock & NumpadDot::{
+  A_Clipboard:="　　• "
+  sdv()		;普通ClipWait+貼上
+}
+;@━━━━━━━━━━━ /[.鍵盤+小鍵盤-符號]/ ━━━━━━━━━
+
+
+
+
+
+;@fx 複制
+aZcopy(ThisHotkey){		;fx 複制內容進入變量
+	x0:=SubStr(ThisHotkey, -1, 1)
+	send "^c"
+	if !ClipWait(0.5)  ; 最多等 0.5 秒，超時就跳過，防止卡死
+	return
+	sleep 500
+	varClip[x0] := A_Clipboard
+	  MouseGetPos &x1, &y1
+	  tooltip "  複制成功...【" SubStr(ThisHotkey, -1, 1) "】", x1+30, y1+30
+	  SetTimer () => ToolTip(), -3000
+	}
+
+
+;@fx 貼上
+azPaste(ThisHotkey){		;fx 貼上內容
+	x0:=SubStr(ThisHotkey, -1, 1)
+	  if varClip[x0] = ""
+	  {
+	  MouseGetPos &x1, &y1
+	  tooltip "`r`n　　【" x0 "】無內容　　`r`n  ", x1+30, y1+30
+	  SetTimer () => ToolTip(), -3000
+	  return
+	  }
+	A_Clipboard:=varClip[x0]
+	if !ClipWait(0.5)  ; 最多等 0.5 秒，超時就跳過，防止卡死
+	return
+	sleep 500
+	send "^v"
+	SetCapsLockState "Off"
+	}
+
+sdV(*){		;普通貼上
+	if !ClipWait(0.5)  ; 最多等 0.5 秒，超時就跳過，防止卡死
+	return
+	sleep 500
+	send "^v"
+	SetCapsLockState "Off"
+}
+
+
+
+;@━━━━━━━━━━━ [輸入法] ━━━━━━━━━
+;切換至「中文語系鍵盤布局」➜ 切換「中」狀態
+;══════════════════════[中文鍵盤布局/「中」]══════════════════════
+/*----------------
+;台灣繁體: 0x4040404 (注音/倉頡)
+;中國大陸簡體: 0x8040804 (拼音)
+
+SwitchLanguage(0x4040404, 1)  ;倉頡「中」
+SwitchLanguage(0x4040404, 0)  ;倉頡「英」
+------------------*/
+
+SwitchLanguage(LocaleID, EChi) {
+
+  DetectHiddenWindows True
+  hwnd := WinExist("A")
+  ;⬛切換至「中文語系鍵盤布局」
+  if (hwnd) {
+  PostMessage(0x50, 0, LocaleID,, "ahk_id " hwnd)
+  sleep 200
+
+
+  ;⬛切換目前輸入法為「中文模式」
+/*
+  imeHwnd := DllCall("imm32\ImmGetDefaultIMEWnd", "Ptr", hwnd, "Ptr")   ;//獲取預設 IME 視窗控制代碼
+  if (imeHwnd)
+  SendMessage(0x283, 0x002, EChi,, "ahk_id " imeHwnd)
+  ;1025 代表中文模式，0 代表英文模式
+*/
+
+ if (imeHwnd := DllCall("imm32\ImmGetDefaultIMEWnd", "Ptr", hwnd, "Ptr")) {
+        SendMessage(0x283, 0x002, EChi,, "ahk_id " imeHwnd)
+    }
+
+
+
+    } ;//if (hwnd)
+} ;//SwitchLanguage
+;══════════════════════/[中文鍵盤布局/「中」]/══════════════════════
+
+
+
+
+
+
+
