@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <h2>📁 文件同步 (up/tmp/)</h2>
+    <h2>📁 文件同步 (up/files/)</h2>
     
     <!-- Token 設定 -->
     <div style="margin-bottom: 15px;">
@@ -27,12 +27,11 @@
 
     <!-- 檔案列表 -->
     <h3>📄 檔案列表</h3>
-    <div id="fileList">載入中...</div>
+    <div id="fileList">請先輸入並儲存 Token</div>
 
     <script>
-        // 設定你的倉庫資訊
         const OWNER = 'paopaoloung';
-        const REPO = 'paopaoloung.github.io'; // 或是你的 Pages 倉庫名
+        const REPO = 'paopaoloung.github.io'; 
         const TARGET_DIR = 'up/files';
 
         let TOKEN = localStorage.getItem('gh_token') || '';
@@ -46,31 +45,38 @@
         }
 
         async function apiFetch(path, options = {}) {
-            const res = await fetch(`https://github.com{OWNER}/${REPO}/contents/${path}`, {
-                ...options,
-                headers: {
-                    'Authorization': `token ${TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    ...options.headers
+            const url = `https://github.com{OWNER}/${REPO}/contents/${path}`;
+            try {
+                const res = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        ...options.headers
+                    }
+                });
+                if (!res.ok && res.status !== 404) {
+                    const err = await res.json();
+                    throw new Error(err.message || `HTTP ${res.status}`);
                 }
-            });
-            if (!res.ok && res.status !== 404) {
-                const err = await res.json();
-                throw new Error(err.message || 'API 錯誤');
+                return res;
+            } catch (e) {
+                // 捕捉網路中斷、跨域或 API 被封鎖的真正原因
+                throw new Error(e.message || '網路連線失敗或權限不足');
             }
-            return res;
         }
 
-        // 讀取並按名稱排序列表
         async function loadFiles() {
             const listDiv = document.getElementById('fileList');
             if (!TOKEN) { listDiv.innerHTML = '請先輸入並儲存 Token'; return; }
             listDiv.innerHTML = '載入中...';
             try {
                 const res = await apiFetch(TARGET_DIR);
-                if (res.status === 404) { listDiv.innerHTML = '資料夾暫無檔案'; return; }
+                if (res.status === 404) { listDiv.innerHTML = '資料夾暫無檔案（或 up/tmp 目錄尚未建立）'; return; }
                 const files = await res.json();
                 
+                if (!Array.isArray(files)) { listDiv.innerHTML = '無法讀取列表，請確認路徑是否為資料夾'; return; }
+
                 // 按名稱排序
                 files.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -84,11 +90,10 @@
                     </div>
                 `).join('');
             } catch (err) {
-                listDiv.innerHTML = '讀取失敗: ' + err.message;
+                listDiv.innerHTML = `讀取失敗: ${err.message}<br><small style="color:gray;">提示：請檢查 Token 是否正確，或按 F12 開啟主控台查看詳細 Console 錯誤。</small>`;
             }
         }
 
-        // 上傳檔案
         async function uploadFile() {
             const input = document.getElementById('fileInput');
             if (!input.files.length) return alert('請選擇檔案');
@@ -98,9 +103,9 @@
             const reader = new FileReader();
             
             reader.onload = async () => {
-                const content = reader.result.split(',')[1]; // 取得 Base64 編碼
+                // 正確精準地擷取 Base64 純字串部分
+                const base64Content = reader.result.split(',')[1]; 
                 try {
-                    // 檢查檔案是否已存在（若存在需獲取 sha 才能覆蓋，精簡起見此處直接嘗試寫入）
                     let sha;
                     try {
                         const check = await apiFetch(`${TARGET_DIR}/${file.name}`);
@@ -111,11 +116,11 @@
                         method: 'PUT',
                         body: JSON.stringify({
                             message: `Upload ${file.name} via web`,
-                            content: content,
+                            content: base64Content,
                             sha: sha
                         })
                     });
-                    alert('上傳成功！(GitHub Pages 更新可能需要 1~2 分鐘)');
+                    alert('上傳成功！');
                     input.value = '';
                     loadFiles();
                 } catch (err) {
@@ -125,7 +130,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 刪除檔案
         async function deleteFile(name, sha) {
             if (!confirm(`確定要刪除 ${name} 嗎？`)) return;
             try {
@@ -143,7 +147,6 @@
             }
         }
 
-        // 初始載入
         if (TOKEN) loadFiles();
     </script>
 </body>
