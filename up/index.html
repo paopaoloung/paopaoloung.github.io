@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>File Sync1</title>
+<title>File Sync 2</title>
 <style>
 body{font-family:Arial;max-width:800px;margin:20px auto}
 .row{display:flex;gap:8px;margin:10px 0}
@@ -191,7 +191,7 @@ async function upload(){
 }
 
 async function delFile(name){
-
+    name=decodeURIComponent(name);
     if(!confirm("確定刪除 "+name+" ?")) return;
 
     try{
@@ -267,9 +267,10 @@ async function loadFiles(){
                         </a>
                     </td>
                     <td align="center">
-                        <button onclick="delFile(${JSON.stringify(f.name)})">
-                            刪除
-                        </button>
+                    <button onclick="delFile(this.dataset.name)"
+                        data-name="${encodeURIComponent(f.name)}">
+                        刪除
+                    </button>
                     </td>
                 </tr>
             `)
