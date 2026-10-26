@@ -190,32 +190,58 @@ async function upload(){
     }
 }
 
-async function delFile(name,sha){
+async function delFile(name){
 
     if(!confirm("確定刪除 "+name+" ?")) return;
 
-    const r=await fetch(
-        api("/"+encodeURIComponent(name)),
-        {
-            method:"DELETE",
-            headers:{
-                ...headers(),
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                message:"delete "+name,
-                sha:sha
-            })
+    try{
+
+        const info=await fetch(
+            api("/"+encodeURIComponent(name)),
+            {headers:headers()}
+        );
+
+        const file=await info.json();
+
+        if(!info.ok){
+            alert(file.message||"讀取SHA失敗");
+            return;
         }
-    );
 
-    const txt=await r.text();
+        const r=await fetch(
+            api("/"+encodeURIComponent(name)),
+            {
+                method:"DELETE",
+                headers:{
+                    ...headers(),
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+                    message:"delete "+name,
+                    sha:file.sha
+                })
+            }
+        );
 
-    console.log("status=",r.status);
-    console.log(txt);
+        const d=await r.json();
 
-    alert(txt);
+        if(!r.ok){
+            alert(d.message||"刪除失敗");
+            return;
+        }
+
+        alert("刪除成功");
+
+        loadFiles();
+
+    }catch(e){
+
+        console.error(e);
+
+        alert("刪除失敗");
+    }
 }
+
 
 async function loadFiles(){
 
@@ -237,7 +263,7 @@ async function loadFiles(){
                         </a>
                     </td>
                     <td align="center">
-                        <button onclick="delFile(${JSON.stringify(f.name)},${JSON.stringify(f.sha||"")})">
+                        <button onclick="delFile(${JSON.stringify(f.name)})">
                             刪除
                         </button>
                     </td>
