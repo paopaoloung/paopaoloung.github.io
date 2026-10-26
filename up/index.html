@@ -203,8 +203,10 @@ async function delFile(name){
 
         const file=await info.json();
 
-        if(!info.ok){
-            alert(file.message||"讀取SHA失敗");
+        console.log("file=",file);
+
+        if(!file.sha){
+            alert("無法取得SHA");
             return;
         }
 
@@ -225,6 +227,8 @@ async function delFile(name){
 
         const d=await r.json();
 
+        console.log(d);
+
         if(!r.ok){
             alert(d.message||"刪除失敗");
             return;
@@ -240,6 +244,7 @@ async function delFile(name){
 
         alert("刪除失敗");
     }
+    console.log(file);
 }
 
 
