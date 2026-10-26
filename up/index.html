@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>File Sync</title>
+<title>File Sync1</title>
 <style>
 body{font-family:Arial;max-width:800px;margin:20px auto}
 .row{display:flex;gap:8px;margin:10px 0}
@@ -203,10 +203,10 @@ async function delFile(name){
 
         const file=await info.json();
 
-        console.log("file=",file);
+        console.log("取得檔案資訊",file);
 
         if(!file.sha){
-            alert("無法取得SHA");
+            alert("取不到 SHA");
             return;
         }
 
@@ -227,10 +227,10 @@ async function delFile(name){
 
         const d=await r.json();
 
-        console.log(d);
+        console.log("刪除結果",d);
 
         if(!r.ok){
-            alert(d.message||"刪除失敗");
+            alert(d.message);
             return;
         }
 
@@ -238,13 +238,12 @@ async function delFile(name){
 
         loadFiles();
 
-    }catch(e){
+    }catch(err){
 
-        console.error(e);
+        console.error(err);
 
-        alert("刪除失敗");
+        alert(err.message);
     }
-    console.log(file);
 }
 
 
