@@ -3,3 +3,6 @@
 
 挑釁
 你的行為先激怒了我，我的反應才惹惱了你，你為甚麼指責我的行為，卻不反思自己的所作所為？
+
+localStorage.removeItem("github_token") ---清空當前token
+localStorage.clear() ---清空全部 localStorage：如果網站還儲存了其他設定，也會一起刪除。
