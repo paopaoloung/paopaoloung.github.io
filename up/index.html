@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>File Sync 2</title>
+<title>File Sync 4</title>
 <style>
 body{font-family:Arial;max-width:800px;margin:20px auto}
 .row{display:flex;gap:8px;margin:10px 0}
@@ -229,14 +229,27 @@ async function delFile(name){
 
         console.log("刪除結果",d);
 
-        if(!r.ok){
-            alert(d.message);
-            return;
-        }
+if(!r.ok){
+    alert(d.message);
+    return;
+}
 
-        alert("刪除成功");
+// 同步通知 GAS 刪除 Sheet 紀錄
+try{
+    await fetch(gas,{
+        method:"POST",
+        body:JSON.stringify({
+            action:"delete",
+            name:name
+        })
+    });
+}catch(e){
+    console.log("GAS更新失敗",e);
+}
 
-        loadFiles();
+alert("刪除成功");
+
+loadFiles();
 
     }catch(err){
 
