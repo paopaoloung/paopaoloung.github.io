@@ -18,7 +18,7 @@ a{text-decoration:none;color:#06c}
 </head>
 <body>
 
-<h2>檔案暫存🌥️雲端🌥️(！用後請自行刪除私人檔案)：</h2>
+<h2>檔案暫存🌥️雲端🌥️(！用後請自行刪除私人檔案-3)：</h2>
 
 <div class="row">
     <input type="password" id="token">
@@ -81,37 +81,27 @@ function headers(){
 
 
 async function loadTokenFromSheet(){
-
     try{
-
         const r = await fetch(
             gas + "?action=token"
         );
-
         const d = await r.json();
 
         if(d.token){
-
             token.value = d.token;
-
             localStorage.setItem(
                 STORAGE_KEY,
                 d.token
             );
-
             console.log("已從 Google Sheet 載入 Token");
-
         }
 
     }catch(err){
-
         console.error(
             "讀取 Token 失敗",
             err
         );
-
     }
-
 }
 
 async function saveToken(){
