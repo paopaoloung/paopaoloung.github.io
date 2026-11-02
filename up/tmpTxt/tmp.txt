@@ -4,5 +4,25 @@
 挑釁
 你的行為先激怒了我，我的反應才惹惱了你，你為甚麼指責我的行為，卻不反思自己的所作所為？
 
-localStorage.removeItem("github_token") ---清空當前token
+
+console.log(localStorage);---查看所有 localStorage 內容
+console.log(sessionStorage);---查看 Session Storage
+
+有些 SPA 網站（例如 Firebase、Google 系服務）會將 Token 放於 IndexedDB：
+indexedDB.databases().then(console.log);
+
+indexedDB.deleteDatabase("資料庫名稱");---刪除指定資料庫：
+
+
+localStorage.removeItem("github_token") ---清空指定token
+如果不知道名稱，可先搜尋：
+Object.keys(localStorage).filter(k =>
+    k.toLowerCase().includes("token")
+);
+
+sessionStorage.removeItem("github_token");---刪除指定 Session Token
+sessionStorage.clear();---清空全部 Session Storage
+
 localStorage.clear() ---清空全部 localStorage：如果網站還儲存了其他設定，也會一起刪除。
+
+
