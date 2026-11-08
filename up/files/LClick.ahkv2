@@ -1,0 +1,60 @@
+﻿
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+/*
+~Lbutton::{
+    if WinExist("ahk_class #32768"){             ;ahk 的菜單
+    sleep 300                                                       ;暫停予執行點擊菜單
+    if WinExist("ahk_class #32768")               ;沒有點擊菜單，菜單仍存在時
+    WinActivate
+    sleep 300
+    send "{Esc}"                                           ;經測試 Esc 比 WinClose 好
+    ;WinClose("ahk_class #32768")
+    }
+}
+*/
+
+
+~LButton:: {
+    ; 1. 定義所有要檢查的目標腳本檔名
+    targetScripts:=[
+      "clipAddon.ahkv2", 
+      "d.ahk", 
+      "c.ahk"
+    ]
+
+
+    ; 2. 開啟偵測隱藏視窗
+    prevDetect := DetectHiddenWindows(True)
+
+    ; 3. 逐一檢查每個腳本
+    for scriptName in targetScripts {
+        ; 獲取該腳本的控制代碼
+        scriptHwnd := WinExist(scriptName " ahk_class AutoHotkey")
+
+        if (scriptHwnd) {
+            scriptAPID := WinGetPID(scriptHwnd)
+
+            ; 4. 精確檢查：畫面上是否存在屬於該腳本的選單
+            if WinExist("ahk_class #32768 ahk_pid " scriptAPID) {
+                DetectHiddenWindows(prevDetect) ; 提前還原設定
+
+                Sleep 300
+                if WinExist("ahk_class #32768 ahk_pid " scriptAPID) {
+                    WinActivate
+                    Sleep 300
+                    Send "{Esc}"
+                }
+                return ; 找到並處理完畢後，直接結束此函數
+            }
+        }
+    }
+
+    ; 5. 如果都沒有符合的選單，安全還原設定
+    DetectHiddenWindows(prevDetect)
+}
+
+
+
