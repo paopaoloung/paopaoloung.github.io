@@ -1,0 +1,276 @@
+﻿
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+CoordMode "Mouse", "Screen"  ; 讓 MouseGetPos 抓取「整個螢幕」的絕對座標
+CoordMode "Menu", "Screen"   ; 讓 Menu.Show 根據「整個螢幕」的絕對座標來彈出
+
+/*----------------
+搭配 LClick.ahkv2 使用，用以呼叫菜單後不執行，菜單不會自行關閉缺陷
+
+-------------------*/
+
+global ClipHistory := []
+global PinnedItems := []                              ; 儲存常駐鎖定的文字
+global MaxItems := 20                                  ;儲存上限
+global menuTxtLength := 50                    ;截取多少個字元作為菜單名稱
+
+global x0 := 0
+global y0 := 0
+
+global isInternalClipboardChange := false            ; 阻斷開關：避免菜單內部貼上動作觸發刷新監聽器
+OnClipboardChange(OnClipChange)        ; 註冊剪貼簿監聽器，當系統剪貼簿內容改變時自動觸發
+
+
+;@ 初始化編輯 GUI (預先建立與排版)
+global editGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox", "編輯剪貼簿項目")
+editGui.SetFont("s10", "Microsoft JhengHei")
+editGui.Add("Text", "x10 y10", "請編輯此項目的完整內容：")
+global editBox := editGui.Add("Edit", "x10 y35 w380 h100 WantTab vEditValue", "")
+global btnSave := editGui.Add("Button", "x220 y145 w80 h25 Default", "儲存")
+global btnCancel := editGui.Add("Button", "x310 y145 w80 h25", "取消")
+
+; 預先綁定 GUI 相關事件
+btnSave.OnEvent("Click", (*) => SaveChanges())
+btnCancel.OnEvent("Click", (*) => editGui.Hide())
+editGui.OnEvent("Escape", (*) => editGui.Hide())
+editGui.OnEvent("Close", (*) => editGui.Hide())
+
+
+
+/*
+;@LCtrl * 2---(連按兩下 LCtrl 喚出選單)
+~LCtrl Up:: {
+    static lastLCtrlTime := 0
+    currentTime := A_TickCount
+    
+    ; 判斷兩次按下的時間差是否在 300 毫秒以內
+    if (currentTime - lastLCtrlTime < 300) {
+        lastLCtrlTime := 0                     ; 重置時間避免連續按三下觸發兩次
+
+;@@外點擊，菜單不消失解決方法1/2 --- (強制發送一個 WM_MOUSEMOVE 訊息)
+;這個微小的動作逼迫 Windows 重新去計算、刷新滑鼠所在的座標與視窗層級會取消選取)
+;        MouseMove 0, 0 , 0, "R"
+
+       global x0, y0
+       MouseGetPos &x0, &y0
+       ShowClipMenu()
+    } else {
+        lastLCtrlTime := currentTime
+    }
+}
+*/
+
+
+; 綁定熱鍵：連按兩下 LCtrl 或 RButton 觸發
+~LCtrl Up::TriggerMenu()
+
+; 只有在「滑鼠左鍵沒有被按住」的情況下，才允許放開右鍵時觸發邏輯
+~RButton Up:: {
+    if GetKeyState("LButton", "P") {
+        return ; 如果左鍵正被實體按住，直接跳過，不激活 AHK 菜單，也不會影響單按
+    }
+    TriggerMenu()
+}
+
+TriggerMenu() {
+    static lastTime := 0
+    if (A_ThisHotkey == A_PriorHotkey && A_TickCount - lastTime < 300) {
+        lastTime := 0
+        global x0, y0
+        MouseGetPos &x0, &y0
+        ShowClipMenu()
+    } else {
+        lastTime := A_TickCount
+    }
+}
+
+
+
+; ===================
+; 核心邏輯功能
+; ===================
+;@ OnClipChange(Type)---監聽剪貼簿變動
+OnClipChange(Type) {
+    ; 如果是選單內部進行貼上或還原引起的剪貼簿變動，直接忽略不刷新
+    if (isInternalClipboardChange)
+    return
+
+    if (Type == 1) {                             ; Type = 1 代表剪貼簿內是「文字」內容（忽略圖片、檔案等非文字）
+        NewText := A_Clipboard
+
+        ; 如與最近一次複製內容相同，避免重覆寫入（同時比對動態與常駐紀錄）
+        if (ClipHistory.Length > 0 && ClipHistory[1] == NewText)
+        return
+        for pinnedText in PinnedItems {
+            if (pinnedText == NewText)
+            return
+        }
+
+        ; 將最新文字插入到陣列的第一個位置 (最新項目)
+        ClipHistory.InsertAt(1, NewText)
+
+        ; 如果陣列長度超過最大限制，則移除最舊的項目
+        if (ClipHistory.Length > MaxItems)
+        ClipHistory.Pop()
+    }  ; //if (Type == 1)
+}  ; //OnClipChange(Type)
+
+
+
+
+;@ ShowClipMenu()---動態生成並顯示菜單
+ShowClipMenu() {
+    ; 如果歷史紀錄是空的，跳出提示不顯示菜單
+    if (ClipHistory.Length == 0 && PinnedItems.Length == 0) {
+        ToolTip("剪貼簿目前沒有文字歷史紀錄")
+        SetTimer(() => ToolTip(), -1500) ; 1.5秒後自動消失
+        return
+    }
+
+;@@外點擊，菜單不消失解決方法2/2 --- (輸入Esc，清空上次殘存，但同時會取消選取)
+;    Send("{Esc}")
+;    Sleep(50)
+
+    ; 建立一個全新的菜單物件
+    ClipMenu := Menu()
+    menuIndex := 1                               ; 統整 1~9 的鍵盤數字快捷鍵
+
+;@@ 一般菜單---歷遍歷史陣列，動態加入菜單項目
+    for index, fullText in ClipHistory {
+;@@@ 1. 處理換行符號：將文字中的換行與回車替換為空格，避免菜單畫面變形
+        cleanText := StrReplace(fullText, "`r`n", " ")
+        cleanText := StrReplace(cleanText, "`n", " ")
+        cleanText := StrReplace(cleanText, "`r", " ")
+
+;@@@ 2. 截取前 20 個字元
+        shortText := SubStr(cleanText, 1, menuTxtLength)
+
+        ; 如果原本文字超過 20 字，結尾加上省略號
+        if (StrLen(cleanText) > menuTxtLength) {
+            shortText .= "..."
+        }
+
+;@@@ 3. 加入數字序號
+        menuName := "&" . menuIndex . ". " . shortText
+
+;@@@ 4. 使用 Bind 將「完整內容」、是否常駐及位置綁定到回呼函式
+        ClipMenu.Add(menuName, menuFx.Bind(fullText, false, index))
+        menuIndex++
+    }
+
+    ; 如果同時有一般與常駐項目，中間加一條分隔線
+    if (ClipHistory.Length > 0 && PinnedItems.Length > 0) {
+        ClipMenu.Add()
+    }
+
+;@@ 常駐菜單---歷遍生成常駐陣列
+    for index, fullText in PinnedItems {
+        cleanText := StrReplace(fullText, "`r`n", " ")
+        cleanText := StrReplace(cleanText, "`n", " ")
+        cleanText := StrReplace(cleanText, "`r", " ")
+
+        shortText := SubStr(cleanText, 1, menuTxtLength)
+        if (StrLen(cleanText) > menuTxtLength) {
+            shortText .= "..."
+        }
+
+        ; 常駐項目加上 📌 標籤
+        menuName := "&" . menuIndex . ". [📌] " . shortText
+        ClipMenu.Add(menuName, menuFx.Bind(fullText, true, index))
+        menuIndex++
+    }
+
+;@@ 最底部功能項目 (固定加上分隔線)
+    ClipMenu.Add()
+    ClipMenu.Add("清除全部 (Reload)", (*) => Reload())    ; 清除全部項目：直接重新載入腳本
+    ClipMenu.Add("取消選單 (LShift-刪除 / LCtrl-常駐 / RShift-編輯)", (*) => "")                   ; 取消選單：點擊後不作任何更改直接消失
+    ClipMenu.Show(x0, y0)
+}
+
+;@ menuFx(fullText, ...)---菜單點擊後的回呼函式
+;由於使用了 Bind(fullText, isPinned, arrayPos)，前三個參數會精準接收綁定資料
+menuFx(fullText, isPinned, arrayPos, itemName, itemPos, myMenu) {
+    global isInternalClipboardChange             ; 宣告引入全域阻斷開關
+
+;@@ --- 1. LCtrl + 點擊：切換常駐狀態---
+    if GetKeyState("LCtrl", "P") {
+        if (!isPinned) {
+            ; 從一般項目移到常駐最底
+            ClipHistory.RemoveAt(arrayPos)
+            PinnedItems.Push(fullText)
+            ToolTip("已固定為常駐項目！")
+        } else {
+            ; 從常駐項目取消鎖定（回到動態第一條）
+            PinnedItems.RemoveAt(arrayPos)
+            ClipHistory.InsertAt(1, fullText)
+            ToolTip("已取消常駐鎖定")
+            if (ClipHistory.Length > MaxItems)
+            ClipHistory.Pop()
+        }
+        SetTimer(() => ToolTip(), -1500)
+        SetTimer(ShowClipMenu, -10)              ; 核心修正：非同步重新整理選單，刷新所有項目的 Bind 綁定
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 2. LShift + 點擊：刪除該項目 ---
+    if GetKeyState("LShift", "P") {
+        if (!isPinned) {
+            ClipHistory.RemoveAt(arrayPos)
+        } else {
+            PinnedItems.RemoveAt(arrayPos)
+        }
+        ToolTip("項目已刪除")
+        SetTimer(() => ToolTip(), -1500)
+        SetTimer(ShowClipMenu, -10)              ; 核心修正：非同步重新整理選單，刷新所有項目的 Bind 綁定
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 3. RShift + 點擊：編輯內容並保存 (GUI 賦值模式) ---
+    if GetKeyState("RShift", "P") {
+        ; 將當前項目的元資料動態綁定在 GUI 物件上，供儲存函式存取
+        editGui.TargetPinned := isPinned
+        editGui.TargetPos := arrayPos
+        
+        ; 將完整的 fullText 塞入預先建好的 Edit 框內
+        editBox.Value := fullText
+        
+        ; 顯示 GUI 視窗
+        editGui.Show("w400 h185")
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 正常的貼上邏輯 (沒有按任何組合鍵) ---
+    isInternalClipboardChange := true            ; 開啟阻斷開關，防止接下來兩次改變剪貼簿觸發監聽刷新
+    oldClip := ClipboardAll()
+    A_Clipboard := fullText
+
+    if ClipWait(1)
+    Send("^v")
+
+    Sleep(150)
+    A_Clipboard := oldClip
+    Sleep(50)                                    ; 短暫緩衝確保系統剪貼簿完全還原後
+    isInternalClipboardChange := false           ; 關閉阻斷開關，恢復正常的複製監聽
+}
+
+
+;@ SaveChanges()---GUI 編輯儲存的獨立回呼函式
+SaveChanges() {
+    guiData := editGui.Submit()                  ; 提交並隱藏 GUI
+    newValue := guiData.EditValue
+    
+    if (newValue != "") {
+        ; 從 GUI 的綁定屬性中取出目標陣列位置與類型
+        if (!editGui.TargetPinned) {
+            ClipHistory[editGui.TargetPos] := newValue
+        } else {
+            PinnedItems[editGui.TargetPos] := newValue
+        }
+        ToolTip("修改已保存")
+    } else {
+        ToolTip("內容不可為空，已取消編輯")
+    }
+    SetTimer(() => ToolTip(), -1500)
+    SetTimer(ShowClipMenu, -10)                  ; 非同步重新整理選單
+}
