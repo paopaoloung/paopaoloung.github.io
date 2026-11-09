@@ -183,8 +183,9 @@ ShowClipMenu() {
 
 ;@@ 最底部功能項目 (固定加上分隔線)
     ClipMenu.Add()
-    ClipMenu.Add("清除全部 (Reload)", (*) => Reload())    ; 清除全部項目：直接重新載入腳本
-    ClipMenu.Add("取消選單 (LShift-刪除 / LCtrl-常駐 / RShift-編輯)", (*) => "")                   ; 取消選單：點擊後不作任何更改直接消失
+    ClipMenu.Add("清除全部 (Reload)", (*) => Reload())                                                     ; 清除全部項目：直接重新載入腳本
+    ClipMenu.Add("取消選單 (LShift-刪除 / LCtrl-常駐 / RShift-編輯)", (*) => "")                  ; 取消選單：點擊後不作任何更改直接消失
+    sleep 100                                                                                                                         ;增加少少延遲：讓菜單顯示在原右鍵功能後
     ClipMenu.Show(x0, y0)
 }
 
