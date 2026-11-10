@@ -1,5 +1,5 @@
 ﻿
-
+F5::Reload
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 CoordMode "Mouse", "Screen"  ; 讓 MouseGetPos 抓取「整個螢幕」的絕對座標
@@ -37,13 +37,20 @@ editGui.OnEvent("Escape", (*) => editGui.Hide())
 editGui.OnEvent("Close", (*) => editGui.Hide())
 
 
+;@ [win+alt+=] ---原始熱鍵，呼叫剪貼板菜單(#!=)
+#!=:: {
+       global x0, y0
+       MouseGetPos &x0, &y0
+       ShowClipMenu()
+}
 
-/*
+
+
 ;@LCtrl * 2---(連按兩下 LCtrl 喚出選單)
 ~LCtrl Up:: {
     static lastLCtrlTime := 0
     currentTime := A_TickCount
-    
+
     ; 判斷兩次按下的時間差是否在 300 毫秒以內
     if (currentTime - lastLCtrlTime < 300) {
         lastLCtrlTime := 0                     ; 重置時間避免連續按三下觸發兩次
@@ -51,17 +58,18 @@ editGui.OnEvent("Close", (*) => editGui.Hide())
 ;@@外點擊，菜單不消失解決方法1/2 --- (強制發送一個 WM_MOUSEMOVE 訊息)
 ;這個微小的動作逼迫 Windows 重新去計算、刷新滑鼠所在的座標與視窗層級會取消選取)
 ;        MouseMove 0, 0 , 0, "R"
-
-       global x0, y0
-       MouseGetPos &x0, &y0
-       ShowClipMenu()
-    } else {
-        lastLCtrlTime := currentTime
+        Send("#!=")
     }
+  else
+  lastLCtrlTime := A_TickCount  ; 記錄第一下的時間
+
 }
-*/
 
+;@ [左鍵+右鍵] ---呼叫剪貼板菜單(#!=)
+;一定要這種間接方式才會屏閉原生右鍵
+~LButton & RButton::Send("#!=")
 
+/*
 ; 綁定熱鍵：連按兩下 LCtrl 或 RButton 觸發
 ~LCtrl Up::TriggerMenu()
 
@@ -84,6 +92,7 @@ TriggerMenu() {
         lastTime := A_TickCount
     }
 }
+*/
 
 
 
@@ -184,7 +193,7 @@ ShowClipMenu() {
 ;@@ 最底部功能項目 (固定加上分隔線)
     ClipMenu.Add()
     ClipMenu.Add("清除全部 (Reload)", (*) => Reload())                                                     ; 清除全部項目：直接重新載入腳本
-    ClipMenu.Add("取消選單 (LShift-刪除 / LCtrl-常駐 / RShift-編輯)", (*) => "")                  ; 取消選單：點擊後不作任何更改直接消失
+    ClipMenu.Add("取消選單 [LShift]-刪除；[LCtrl]-常駐；[RShift]-編輯", (*) => "")                  ; 取消選單：點擊後不作任何更改直接消失
     sleep 100                                                                                                                         ;增加少少延遲：讓菜單顯示在原右鍵功能後
     ClipMenu.Show(x0, y0)
 }
