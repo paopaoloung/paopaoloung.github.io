@@ -1,0 +1,389 @@
+﻿
+#SingleInstance force
+#Requires AutoHotkey v2.0
+TraySetIcon("%SystemRoot%\System32\SHELL32.dll", 23)    ;放大鏡 Icon
+
+CoordMode("Mouse", "Screen")
+
+
+EmEditorLoc:="C:\[tools]\emed64_20.4.4_portable\EmEditor.exe "    ;最後要帶一個空格
+if !FileExist(Trim(EmEditorLoc, " "))
+    EmEditorLoc := "notepad.exe "
+
+
+run "C:\Users\paopaoloung\OneDrive\[ahk]\[ahkTools]\[toolV2]\SnippetMenu\SnippetMenu.ahkv2"
+run "C:\Users\paopaoloung\OneDrive\[ahk]\[ahkTools]\[toolV2]\倉頡輸入addOn.ahkv2"
+
+/*
+;測試AHK腳本
+~LCtrl & LAlt::
+
+
+*/
+
+
+global editW:=200
+global x0 := 0, y0 := 0
+;@ GUI---代碼輸入
+;═════════════ [代碼輸入] ═════════════
+    myGui := Gui("-MinimizeBox -MaximizeBox +AlwaysOnTop", "inpbx")
+    myGui.SetFont("s12", "Microsoft JhengHei") 
+    myGui.Add("Text", "", "請輸入捷徑代碼：")
+    editCtrl := myGui.Add("Edit", "section r1 w" editW)
+
+    btnOK:=myGui.Add("Button", "y+2 w" editW/2, "OK").OnEvent("Click", RunCommand)
+    btnX:=myGui.Add("Button", "x+2 yp w" editW/2, "關閉").OnEvent("Click", (*) => myGui.Hide())
+    myGui.OnEvent("Close", (*) => myGui.Hide())
+    myGui.OnEvent("Escape", (*) => myGui.Hide())
+
+
+
+;@ GUI---藍色小窗口  按中鍵出錯
+;blueWin("倒計時 2s 關閉！", 5)
+;blueWin("點文字關閉！", 0)
+blueWin(txtTip, duration) {
+    global GuiTip0, txt0, txt1, t1, t
+    t := duration
+    t1 := duration
+    
+    if WinExist("[GuiTip]") {
+        txt0.Value := txtTip
+        txt1.Value := t1 "s"
+        SetTimer tDn, 1000
+        sleep duration * 1000
+        return
+    }
+
+    GuiTip0 := Gui("+AlwaysOnTop -Caption +Border +Owner", "[GuiTip]")
+    GuiTip0.BackColor := "Aqua"
+
+    GuiTip0.SetFont("s15 w1000", "norm")
+    txt0 := GuiTip0.Add("Text", "x5 y5 R1", txtTip).OnEvent("Click", (*) => GuiTip0.Hide())
+    ;點擊文字可關閉---for不倒計時關閉的窗口
+    txt1 := GuiTip0.Add("Text", "x+10 w50", t1 "s")
+    
+    SetTimer tDn, 1000
+    GuiTip0.Show("NoActivate AutoSize")
+;WinSetTransparent 70, "[GuiTip]"
+    if t == 0 {
+    SetTimer tDn, 0
+    txt1.value := ""					;不自動消失窗口
+    return
+    }
+
+    sleep duration * 1000
+    
+    SetTimer tDn, 0
+    GuiTip0.Hide()
+}
+
+tDn(*) {
+    global t1, t, txt1
+    t1--
+    if (t1 < 0) {
+        t1 := t
+    } 
+    try txt1.Value := t1 "s"
+}
+
+
+
+;@ [左鍵+右鍵] ---呼叫剪貼板菜單(#!=)
+;LButton & RButton::Send("#!=")
+;@ [左鍵+滾↑] ---聲音調校：增大聲音
+~LButton & WheelUp::Send("{Volume_Up}")
+;@ [左鍵+滾↓] ---聲音調校：減小聲音
+~LButton & WheelDown::Send("{Volume_Down}")
+
+
+;@ [中鍵] ---窗口置頂//  
+~MButton:: {
+    CoordMode("Mouse", "Screen"), MouseGetPos(&x, &y, &id)
+    if id && WinExist("ahk_id " id) {
+        ; 0x84 是 WM_NCHITTEST，用於測試鼠標在窗口中的位置
+        res := SendMessage(0x84, 0, (x & 0xFFFF) | ((y & 0xFFFF) << 16), , id)
+        
+        ; res == 2 代表鼠標當前正處於窗口的標題欄 (HTCAPTION)
+        if (res == 2) {
+            WinSetAlwaysOnTop(-1, id)
+            blueWin("窗口置頂！", 5) ; 提示函數移到這裡，只有觸發置頂時才顯示
+        }
+    }
+}
+
+/*
+;@ [LCtrl] * 2 ---EmEditor剪貼板菜單(#!=)/
+global lastCtrlTime := 0
+~LCtrl Up:: {
+  global lastCtrlTime
+  ; 判斷兩次放開 LCtrl 的時間差是否在 250 毫秒（0.25秒）內
+  if (A_TickCount - lastCtrlTime < 250) {
+
+    if WinActive("EmEditor")
+    Send("#!=")
+
+    lastCtrlTime := 0  ;成功後重設時間
+  }
+  else
+  lastCtrlTime := A_TickCount  ; 記錄第一下的時間
+}
+*/
+
+
+
+;@ [LCtrl & LWin] ---中文輸入
+~LCtrl & LWin::SwitchLanguage(0x4040404, 1)    ;0英 / 1中
+
+
+
+;@ [Win+V] ---貼上檔案的路徑
+#v::{
+txt := A_Clipboard
+if InStr(txt, "出处：bilibili") {
+    txt := StrReplace(txt, "作者：", "|")
+    txtArray := StrSplit(txt, "|")
+    A_Clipboard := txtArray[1]
+}
+txt := StrReplace(txt, "`n", "")      ; 移除換行符
+txt := StrReplace(txt, "`r", "")                      ; 移除換行回車符
+txt := StrReplace(txt, A_Tab, A_Space)       ; 將 Tab 鍵全替換為半形空格
+A_Clipboard := txt
+Sleep 500
+Send("^v")
+}
+
+
+
+
+;@ [Escape] * 2 ---关闭窗口
+~Esc:: {
+  if KeyWait("Escape", "T0.5") && KeyWait("Escape", "D T0.2")
+  WinClose("A")
+}
+
+
+
+;@ [Alt+1] ---繁簡轉換：to 簡體
+!1:: {
+    send "^c"
+    Sleep 500
+    ClipWait(1)
+    Text := A_Clipboard
+    ; 呼叫 Windows API 進行繁轉簡
+    Length := DllCall("LCMapStringW", "UInt", 0x0800, "UInt", 0x02000000, "Str", Text, "Int", -1, "Ptr", 0, "Int", 0)
+    
+    if (Length > 0) {
+        VarSetStrCapacity(&Buffer, Length * 2)
+        DllCall("LCMapStringW", "UInt", 0x0800, "UInt", 0x02000000, "Str", Text, "Int", -1, "Str", Buffer, "Int", Length)
+        A_Clipboard := Buffer
+        sleep 500
+        Send("^v")
+    }
+}
+
+
+;@ [Alt+2] ---繁簡轉換：to 繁體
+!2:: {
+    send "^c"
+    Sleep 500
+    ClipWait(1)
+
+    Text := A_Clipboard
+    ; 💡 關鍵修改：將 0x02000000 改為 0x04000000 (LCMAP_TRADITIONALCHINESE)
+    Length := DllCall("LCMapStringW", "UInt", 0x0800, "UInt", 0x04000000, "Str", Text, "Int", -1, "Ptr", 0, "Int", 0)
+    
+    if (Length > 0) {
+        VarSetStrCapacity(&Buffer, Length * 2)
+        DllCall("LCMapStringW", "UInt", 0x0800, "UInt", 0x04000000, "Str", Text, "Int", -1, "Str", Buffer, "Int", Length)
+        A_Clipboard := Buffer
+        Sleep(500)
+        Send("^v")
+    }
+}
+
+
+
+
+
+;@ [Alt+Space] ---⬛代碼輸入窗口
+;@ 熱字串：---dmsr⬛代碼輸入窗口
+::dmsr::
+!space::
+openInpbx(*) {
+global x0, y0, btn1w, btn1h
+CoordMode("Mouse", "Client")
+  editCtrl.Value:=""
+  UserInput := ""
+
+myGui.Show()
+MouseMove x0, y0, 0
+editCtrl.Focus()
+sleep 100
+;@@設為英文輸入法
+SwitchLanguage(0x4040404, 0)
+;@@獲取OK按扭的位置---將滑鼠移至其中心點
+if (x0==0 && y0==0){
+;surfacePro8 有DPI縮放，ControlGetPos適用
+ControlGetPos &btn1x, &btn1y, &btn1w, &btn1h, "Button1", "inpbx"
+;msgbox btn1x "---" btn1y
+
+;！標準電腦沒有縮放的，探AHK自己劃的Gui會更精準
+;myGui["OK"].GetPos(&btn1x, &btn1y, &btn1w, &btn1h)
+;msgbox btn1x "---" btn1y
+    x0 := btn1x + (btn1w / 2)
+    y0 := btn1y + (btn1h/2)
+    MouseMove x0, y0, 0
+}
+}
+
+
+
+;@ #HotIf WinActive("inpbx")
+#HotIf WinActive("inpbx")
+Enter::
+NumpadEnter::
+
+RunCommand(*) {
+;Global
+
+  UserInput := editCtrl.Value
+  iniR := IniRead("inputBoxRun.ini", "run", UserInput, "xxx")
+  myGui.Hide()
+
+;@@ 功能： inpbx ---⬛UserInput 分析
+switch UserInput {
+    case "np":  Run("notepad")        ; txt筆記本
+    case "hh":  Run("mspaint")        ; 畫畫
+    case "fdj": Run("magnify")        ; 放大鏡
+    case "jsj": Run("calc")        ; 放大鏡
+    case "yy":  Send("#h")            ; 語音輸入
+
+    case "fw":  Run("services.msc")   ; 本地服務管理
+    case "zj":  Run("comexp.msc")     ; 組件/元件服務
+    case "zz":  Run("devmgmt.msc")    ; 裝置管理員
+    case "dx":  Run("dxdiag")         ; directX診斷工具
+
+    case "dy":  Run("powercfg.cpl")   ; 電源計劃
+    case "lx":  Run("ncpa.cpl")             ; 網路連線
+    case "xsq": Run("desk.cpl")       ; 顯示器設定
+    case "ly":  Run("bthprops.cpl")   ; 藍牙設定
+    ;case "edini":  Run('"' EmEditorLoc '" "' A_ScriptDir '\inputBoxRun.ini"')
+    case "eds":  Run('"' EmEditorLoc '" "' A_ScriptFullPath '"')
+
+
+    case "ccx":   ; 清除剪貼簿
+        Send("#!=")
+        if WinWait("ahk_exe CLCL.exe", , 3) { ; 加上 3 秒超時保護，防止視窗沒出現時程式卡死
+            Sleep(500)
+            Send("h")
+            Sleep(500)
+            Send("y")
+            blueWin("清除剪貼薄---完成！", 2)
+        }
+
+    case "reg": ; 打開注冊表並跳轉到剪貼簿路徑
+        if WinExist("注册表编辑器 ahk_class RegEdit_RegEdit") {
+            WinClose()
+            WinWaitClose()
+        }
+        
+        ; 處理剪貼簿中的路徑斜線（v2 標準 StrReplace 預設就是替換全部）
+        cleanPath := StrReplace(A_Clipboard, "＼", "\")
+        cleanPath := StrReplace(cleanPath, "/", "\")
+        RegWrite(cleanPath, "REG_SZ", "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Applets\Regedit", "LastKey")
+        Run("regedit.exe")
+}
+
+
+
+    default:
+    if (UserInput == "" || iniR == "xxx")
+    return
+    else {
+    iniR:=StrReplace(iniR, "[user0]", A_UserName)
+    }
+    Run(iniR)
+}
+
+
+;═════════════ [/代碼輸入/] ═════════════
+
+
+
+
+
+;@#HotIf 
+#HotIf
+
+
+
+
+
+/*
+;@ 測試 AHK 腳本
+~LCtrl & LAlt:: {
+    ; 1. 用 EmEditor 開啟該 AHK 檔案進行編輯
+    Run('"C:\[tools]\emed64_20.4.4_portable\EmEditor.exe" "C:\Users\paopaoloung\Desktop\test.ahkv2"')
+    
+    ; 2. 用 AHK v2 執行檔直接執行該檔案
+    Run('"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "C:\Users\paopaoloung\Desktop\test.ahkv2"')
+}
+
+
+
+
+*/
+
+
+
+
+
+
+
+
+;@━━━━━━━━━━━ [輸入法布局] ━━━━━━━━━
+;切換至「中文語系鍵盤布局」➜ 切換「中」狀態
+;═════════════[中文鍵盤布局/「中」]═════════════
+/*----------------
+;台灣繁體: 0x4040404 (注音/倉頡)
+;中國大陸簡體: 0x8040804 (拼音)
+
+SwitchLanguage(0x4040404, 1)  ;倉頡「中」
+SwitchLanguage(0x4040404, 0)  ;倉頡「英」
+------------------*/
+
+SwitchLanguage(LocaleID, EChi) {
+
+  DetectHiddenWindows True
+  hwnd := WinExist("A")
+  ;⬛切換至「中文語系鍵盤布局」
+  if (hwnd) {
+  PostMessage(0x50, 0, LocaleID,, "ahk_id " hwnd)
+  sleep 200
+
+
+  ;⬛切換目前輸入法為「中文模式」
+/*
+  imeHwnd := DllCall("imm32\ImmGetDefaultIMEWnd", "Ptr", hwnd, "Ptr")   ;//獲取預設 IME 視窗控制代碼
+  if (imeHwnd)
+  SendMessage(0x283, 0x002, EChi,, "ahk_id " imeHwnd)
+  ;1025 代表中文模式，0 代表英文模式
+*/
+
+ if (imeHwnd := DllCall("imm32\ImmGetDefaultIMEWnd", "Ptr", hwnd, "Ptr")) {
+        SendMessage(0x283, 0x002, EChi,, "ahk_id " imeHwnd)
+    }
+
+
+
+    } ;//if (hwnd)
+} ;//SwitchLanguage
+;═════════════/[中文鍵盤布局/「中」]/═════════════
+
+
+blueWin("🔍 2.0 ready...", 3)
+;執行1次以示 ready 及确定OK按鍵位置,會出錯
+;openInpbx()
+;myGui.Hide()
+
+
