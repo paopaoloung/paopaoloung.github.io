@@ -41,6 +41,7 @@ editGui.OnEvent("Close", (*) => editGui.Hide())
 #!=:: {
        global x0, y0
        MouseGetPos &x0, &y0
+       ;MouseMove 60, 15, 0, "R"	;0瞬移100最慢
        ShowClipMenu()
 }
 
@@ -59,6 +60,10 @@ editGui.OnEvent("Close", (*) => editGui.Hide())
 ;這個微小的動作逼迫 Windows 重新去計算、刷新滑鼠所在的座標與視窗層級會取消選取)
 ;        MouseMove 0, 0 , 0, "R"
         Send("#!=")
+        Sleep 100
+            if GetKeyState("LButton")
+            Send("{LButton Up}")
+
     }
   else
   lastLCtrlTime := A_TickCount  ; 記錄第一下的時間
