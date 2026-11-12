@@ -47,7 +47,7 @@ editGui.OnEvent("Close", (*) => editGui.Hide())
 
 
 
-;@LCtrl * 2---(連按兩下 LCtrl 喚出選單)
+;@[LCtrl] * 2---(連按兩下 LCtrl 喚出選單)
 ~LCtrl Up:: {
     static lastLCtrlTime := 0
     currentTime := A_TickCount
@@ -55,10 +55,6 @@ editGui.OnEvent("Close", (*) => editGui.Hide())
     ; 判斷兩次按下的時間差是否在 300 毫秒以內
     if (currentTime - lastLCtrlTime < 300) {
         lastLCtrlTime := 0                     ; 重置時間避免連續按三下觸發兩次
-
-;@@外點擊，菜單不消失解決方法1/2 --- (強制發送一個 WM_MOUSEMOVE 訊息)
-;這個微小的動作逼迫 Windows 重新去計算、刷新滑鼠所在的座標與視窗層級會取消選取)
-;        MouseMove 0, 0 , 0, "R"
         Send("#!=")
         Sleep 100
             if GetKeyState("LButton")
@@ -136,21 +132,19 @@ OnClipChange(Type) {
 ;@ ShowClipMenu()---動態生成並顯示菜單
 ShowClipMenu() {
     ; 如果歷史紀錄是空的，跳出提示不顯示菜單
+/*
     if (ClipHistory.Length == 0 && PinnedItems.Length == 0) {
         ToolTip("剪貼簿目前沒有文字歷史紀錄")
         SetTimer(() => ToolTip(), -1500) ; 1.5秒後自動消失
         return
     }
-
-;@@外點擊，菜單不消失解決方法2/2 --- (輸入Esc，清空上次殘存，但同時會取消選取)
-;    Send("{Esc}")
-;    Sleep(50)
+*/
 
     ; 建立一個全新的菜單物件
     ClipMenu := Menu()
     menuIndex := 1                               ; 統整 1~9 的鍵盤數字快捷鍵
 
-;@@ 一般菜單---歷遍歷史陣列，動態加入菜單項目
+;@@ 一、生成剪貼板歷史項目菜單---歷遍 ClipHistory 陣列
     for index, fullText in ClipHistory {
 ;@@@ 1. 處理換行符號：將文字中的換行與回車替換為空格，避免菜單畫面變形
         cleanText := StrReplace(fullText, "`r`n", " ")
@@ -178,7 +172,7 @@ ShowClipMenu() {
         ClipMenu.Add()
     }
 
-;@@ 常駐菜單---歷遍生成常駐陣列
+;@@ 二、生成常駐剪貼板內容菜單---歷遍 PinnedItems 生成常駐陣列
     for index, fullText in PinnedItems {
         cleanText := StrReplace(fullText, "`r`n", " ")
         cleanText := StrReplace(cleanText, "`n", " ")
@@ -195,12 +189,39 @@ ShowClipMenu() {
         menuIndex++
     }
 
-;@@ 最底部功能項目 (固定加上分隔線)
-    ClipMenu.Add()
-    ClipMenu.Add("清除全部 (Reload)", (*) => Reload())                                                     ; 清除全部項目：直接重新載入腳本
-    ClipMenu.Add("取消選單 [LShift]-刪除；[LCtrl]-常駐；[RShift]-編輯", (*) => "")                  ; 取消選單：點擊後不作任何更改直接消失
-    sleep 100                                                                                                                         ;增加少少延遲：讓菜單顯示在原右鍵功能後
+;@@ 三、最底部功能項目--- [清除記錄] //新增功能加這裡
+    ClipMenu.Add() 
+        ;------------------
+        symb0 := Menu()
+        for ch in StrSplit("`~@#$%^&*") {
+            if (ch = "&") {                                       ;菜單要顯示&
+            symb0.Add("&&", paste0.Bind(ch))
+            Continue
+            }
+            symb0.Add(ch, paste0.Bind(ch))
+        }
+        ;--------------------
+    ClipMenu.Add("& ◉ 常用標點", symb0)
+    ClipMenu.Add()                                                                                  ;固定加上分隔線
+    ClipMenu.Add("&C 清除歷史記錄", (*) => ClearHistory())
+    ClipMenu.Add("&R 清除全部記錄(Reload)----[LShift]-刪除；[LCtrl]-常駐；[RShift]-編輯", (*) => Reload())             ; 清除全部項目：直接重新載入腳本
+    sleep 100        ;增加少少延遲：讓菜單顯示在原右鍵功能後
     ClipMenu.Show(x0, y0)
+}
+
+
+;@ paste0(txt)---貼上菜單綁定內容
+paste0(txt, *) {
+;    global isInternalClipboardChange
+;    isInternalClipboardChange := true
+;    oldClip := ClipboardAll()
+    A_Clipboard := txt
+    if ClipWait(1)
+        Send("^v")
+;    Sleep(150)
+;    A_Clipboard := oldClip
+;    Sleep(50)
+;    isInternalClipboardChange := false
 }
 
 ;@ menuFx(fullText, ...)---菜單點擊後的回呼函式
@@ -268,6 +289,18 @@ menuFx(fullText, isPinned, arrayPos, itemName, itemPos, myMenu) {
     Sleep(50)                                    ; 短暫緩衝確保系統剪貼簿完全還原後
     isInternalClipboardChange := false           ; 關閉阻斷開關，恢復正常的複製監聽
 }
+
+
+;@ ClearHistory()---清除歷史紀錄（保留常駐項目）
+ClearHistory() {
+    global ClipHistory
+    ClipHistory := []    ; 清空一般歷史紀錄
+    Sleep 200
+    ShowClipMenu()
+    ToolTip("歷史記錄已清除")
+    SetTimer(() => ToolTip(), -1500)
+}
+
 
 
 ;@ SaveChanges()---GUI 編輯儲存的獨立回呼函式
