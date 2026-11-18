@@ -1,0 +1,457 @@
+﻿
+F5::Reload
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+CoordMode "Mouse", "Screen"  ; 讓 MouseGetPos 抓取「整個螢幕」的絕對座標
+CoordMode "Menu", "Screen"   ; 讓 Menu.Show 根據「整個螢幕」的絕對座標來彈出
+
+/*----------------
+呼叫菜單：
+[LCtrl] * 2
+[左鍵](不放) + [右鍵]
+[Win] + [Alt] + [=號] -----#!=
+
+以下按鍵+左擊相應記錄：
+[LShift]----刪除歷史記錄；
+[LCtrl]-----常駐；
+[RShift]----編輯；
+
+[template0] 裡的資料：
+如第2個字符是點號---會將第1個字符作為快捷鍵
+資料夾個作為子菜單
+txt檔---讀取內容、貼上
+特殊文件 clip.txt會以行為單位，作為菜單名稱及貼上，快捷鍵方法同上；(截50字為上限)
+以 \\\ 作為空行符
+-------------------*/
+templateDir := A_ScriptDir "\template0"    ;模版位置
+    startupPath := templateDir "\l.0\j.0\startup.lnk"
+
+;===== 初始資料生成 =====
+if !DirExist(templateDir)
+{
+    try DirCreate(templateDir)
+    catch {
+    ToolTip "template0資料夾建立失敗！"
+    SetTimer () => ToolTip(), -1500
+    }
+
+    DirCreate(templateDir "\L.0\J.0")
+    DirCreate(templateDir "\A.0\I.0")
+;--------------------
+ai0:="
+(
+編寫代碼格式要求：
+代碼要簡潔、高效、功能優先。
+優先保留現有架構，避免重構。
+能直接寫就直接寫，少封裝輔助函式。
+一行能完成的邏輯盡量一行。
+空行少，空行中不要插入無意義空格。
+不要為排版美觀而大量拆行。
+變量及函式名稱盡間簡短、易明。
+
+
+)"
+
+template0clip:="
+(
+&C. C會作為快捷鍵
+沒有指定的前會自動加編號
+換行符號\\\第二行\\\第三行
+)"
+;==============
+
+    FileAppend(template0clip, templateDir "\clip.txt", "UTF-8")
+    FileAppend(ai0, templateDir "\A.0\I.0\z.編寫腳本要求.txt", "UTF-8")
+    FileCreateShortcut(A_Startup, startupPath)
+    FileCreateShortcut(templateDir, startupPath)
+}
+;===== /初始資料生成/ =====
+
+MaxItems := 20                               ;儲存上限
+menuTxtLength := 50                      ;截取多少個字元作為菜單名稱
+ClipHistory := []
+PinnedItems := []                              ; 儲存常駐鎖定的文字
+
+x0 := 0
+y0 := 0
+
+; 阻斷開關：避免菜單內部貼上動作觸發刷新監聽器
+isInternalClipboardChange := false
+
+; 註冊剪貼簿監聽器，當系統剪貼簿內容改變時自動觸發
+OnClipboardChange(OnClipChange)
+
+
+
+
+;@ 初始化編輯 GUI (預先建立與排版)
+global editGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox", "編輯剪貼簿項目")
+editGui.SetFont("s10", "Microsoft JhengHei")
+editGui.Add("Text", "x10 y10", "請編輯此項目的完整內容：")
+global editBox := editGui.Add("Edit", "x10 y35 w380 h100 WantTab vEditValue", "")
+global btnSave := editGui.Add("Button", "x220 y145 w80 h25 Default", "儲存")
+global btnCancel := editGui.Add("Button", "x310 y145 w80 h25", "取消")
+
+; 預先綁定 GUI 相關事件
+btnSave.OnEvent("Click", (*) => SaveChanges())
+btnCancel.OnEvent("Click", (*) => editGui.Hide())
+editGui.OnEvent("Escape", (*) => editGui.Hide())
+editGui.OnEvent("Close", (*) => editGui.Hide())
+
+
+;@ [win+alt+=] ---原始熱鍵，呼叫剪貼板菜單(#!=)
+#!=:: {
+       global x0, y0
+       MouseGetPos &x0, &y0
+       ShowClipMenu()
+Send("{Blind}{LButton UP}")
+}
+
+
+
+;@[LCtrl] * 2---(連按兩下 LCtrl 喚出選單)
+~LCtrl Up:: {
+    static lastLCtrlTime := 0
+    currentTime := A_TickCount
+
+    ; 判斷兩次按下的時間差是否在 300 毫秒以內
+    if (currentTime - lastLCtrlTime < 300) {
+        lastLCtrlTime := 0                     ; 重置時間避免連續按三下觸發兩次
+        Send("#!=")
+    }
+  else
+  lastLCtrlTime := A_TickCount  ; 記錄第一下的時間
+
+}
+
+;@ [左鍵+右鍵] ---呼叫剪貼板菜單(#!=)
+;一定要這種間接方式才會屏閉原生右鍵
+~LButton & RButton::{
+Send("#!=")
+}
+
+
+
+
+; ===================
+; 核心邏輯功能
+; ===================
+;@ OnClipChange(Type)---監聽剪貼簿變動
+OnClipChange(Type) {
+    ; 如果是選單內部進行貼上或還原引起的剪貼簿變動，直接忽略不刷新
+    if (isInternalClipboardChange)
+    return
+
+    if (Type == 1) {                             ; Type = 1 代表剪貼簿內是「文字」內容（忽略圖片、檔案等非文字）
+        NewText := A_Clipboard
+
+        ; 如與最近一次複製內容相同，避免重覆寫入（同時比對動態與常駐紀錄）
+        if (ClipHistory.Length > 0 && ClipHistory[1] == NewText)
+        return
+        for pinnedText in PinnedItems {
+            if (pinnedText == NewText)
+            return
+        }
+
+        ; 將最新文字插入到陣列的第一個位置 (最新項目)
+        ClipHistory.InsertAt(1, NewText)
+
+        ; 如果陣列長度超過最大限制，則移除最舊的項目
+        if (ClipHistory.Length > MaxItems)
+        ClipHistory.Pop()
+    }  ; //if (Type == 1)
+}  ; //OnClipChange(Type)
+
+
+;@ 菜單生成-常用標點符號模版
+  ;------------------
+symb0 := Menu()
+menuIndex := 1
+for ch in StrSplit("``~@#$%^&*") {
+  ch:="  " ch
+  if (ch = "  &") {                                       ;菜單要顯示&
+  symb0.Add("&" menuIndex "  &&", paste0.Bind(ch))
+  menuIndex++
+  Continue
+  }
+symb0.Add("&" menuIndex ch, paste0.Bind(ch))
+menuIndex++
+}
+  ;--------------------
+
+;@ ShowClipMenu()---動態生成並顯示菜單
+ShowClipMenu() {
+    ClipMenu := Menu()
+    menuIndex := 1                               ; 統整 1~9 的鍵盤數字快捷鍵
+;@@ 一、生成剪貼板歷史項目菜單---歷遍 ClipHistory 陣列
+    for index, fullText in ClipHistory {
+;@@@ 1. 處理換行符號：將文字中的換行與回車替換為空格，避免菜單畫面變形
+        cleanText := StrReplace(fullText, "`r`n", " ")
+        cleanText := StrReplace(cleanText, "`n", " ")
+        cleanText := StrReplace(cleanText, "`r", " ")
+
+;@@@ 2. 截取前 20 個字元
+        shortText := SubStr(cleanText, 1, menuTxtLength)
+
+        ; 如果原本文字超過 20 字，結尾加上省略號
+        if (StrLen(cleanText) > menuTxtLength) {
+            shortText .= "..."
+        }
+
+;@@@ 3. 加入數字序號
+        menuName := "&" . menuIndex . ". " . shortText
+
+;@@@ 4. 使用 Bind 將「完整內容」、是否常駐及位置綁定到回呼函式
+        ClipMenu.Add(menuName, menuFx.Bind(fullText, false, index))
+        menuIndex++
+    }
+
+    ; 如果同時有一般與常駐項目，中間加一條分隔線
+    if (ClipHistory.Length > 0 && PinnedItems.Length > 0) {
+        ClipMenu.Add()
+    }
+
+;@@ 二、生成常駐剪貼板內容菜單---歷遍 PinnedItems 生成常駐陣列
+    for index, fullText in PinnedItems {
+        cleanText := StrReplace(fullText, "`r`n", " ")
+        cleanText := StrReplace(cleanText, "`n", " ")
+        cleanText := StrReplace(cleanText, "`r", " ")
+
+        shortText := SubStr(cleanText, 1, menuTxtLength)
+        if (StrLen(cleanText) > menuTxtLength) {
+            shortText .= "..."
+        }
+
+        ; 常駐項目加上 📌 標籤
+        menuName := "&" . menuIndex . ". [📌] " . shortText
+        ClipMenu.Add(menuName, menuFx.Bind(fullText, true, index))
+        menuIndex++
+    }
+
+;@@ 三、最底部功能項目--- [清除記錄] //新增功能加這裡
+    ClipMenu.Add() 
+    ClipMenu.Add("◉ &.. 常用模版", BuildTemplateMenu(templateDir))
+    ClipMenu.Add("◉ &b. 常用標點", symb0)
+    ClipMenu.Add()                                                                                  ;固定加上分隔線
+    ClipMenu.Add("█清除歷史記錄&C  ---" MaxItems, (*) => ClearHistory())
+    ClipMenu.Add("█[清除全部記錄](&Reload)", (*) => Reload())             ; 清除全部項目：直接重新載入腳本
+    sleep 100        ;增加少少延遲：讓菜單顯示在原右鍵功能後
+    ClipMenu.Show(x0, y0)
+}
+
+
+;@ paste0(txt)---貼上菜單綁定內容
+paste0(txt, *) {
+;    global isInternalClipboardChange
+;    isInternalClipboardChange := true
+;    oldClip := ClipboardAll()
+    A_Clipboard := txt
+    if ClipWait(1)
+        Send("^v")
+;    Sleep(150)
+;    A_Clipboard := oldClip
+;    Sleep(50)
+;    isInternalClipboardChange := false
+}
+
+;@ Fx [剪貼板菜單] 點擊回呼函式---menuFx(fullText, ...)
+;由於使用了 Bind(fullText, isPinned, arrayPos)，前三個參數會精準接收綁定資料
+menuFx(fullText, isPinned, arrayPos, itemName, itemPos, myMenu) {
+    global isInternalClipboardChange             ; 宣告引入全域阻斷開關
+
+;@@ --- 1. LCtrl + 點擊：切換常駐狀態---
+    if GetKeyState("LCtrl", "P") {
+        if (!isPinned) {
+            ; 從一般項目移到常駐最底
+            ClipHistory.RemoveAt(arrayPos)
+            PinnedItems.Push(fullText)
+            ToolTip("已固定為常駐項目！")
+        } else {
+            ; 從常駐項目取消鎖定（回到動態第一條）
+            PinnedItems.RemoveAt(arrayPos)
+            ClipHistory.InsertAt(1, fullText)
+            ToolTip("已取消常駐鎖定")
+            if (ClipHistory.Length > MaxItems)
+            ClipHistory.Pop()
+        }
+        SetTimer(() => ToolTip(), -1500)
+        SetTimer(ShowClipMenu, -10)              ; 核心修正：非同步重新整理選單，刷新所有項目的 Bind 綁定
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 2. LShift + 點擊：刪除該項目 ---
+    if GetKeyState("LShift", "P") {
+        if (!isPinned) {
+            ClipHistory.RemoveAt(arrayPos)
+        } else {
+            PinnedItems.RemoveAt(arrayPos)
+        }
+        ToolTip("項目已刪除")
+        SetTimer(() => ToolTip(), -1500)
+        SetTimer(ShowClipMenu, -10)              ; 核心修正：非同步重新整理選單，刷新所有項目的 Bind 綁定
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 3. RShift + 點擊：編輯內容並保存 (GUI 賦值模式) ---
+    if GetKeyState("RShift", "P") {
+        ; 將當前項目的元資料動態綁定在 GUI 物件上，供儲存函式存取
+        editGui.TargetPinned := isPinned
+        editGui.TargetPos := arrayPos
+
+        ; 將完整的 fullText 塞入預先建好的 Edit 框內
+        editBox.Value := fullText
+        
+        ; 顯示 GUI 視窗
+        editGui.Show("w400 h185")
+        return                                   ; 攔截操作，不執行接下來的貼上動作
+    }
+
+;@@ --- 正常的貼上邏輯 (沒有按任何組合鍵) ---
+    isInternalClipboardChange := true            ; 開啟阻斷開關，防止接下來兩次改變剪貼簿觸發監聽刷新
+    oldClip := ClipboardAll()
+    A_Clipboard := fullText
+
+    if ClipWait(1)
+    Send("^v")
+
+    Sleep(150)
+    A_Clipboard := oldClip
+    Sleep(50)                                    ; 短暫緩衝確保系統剪貼簿完全還原後
+    isInternalClipboardChange := false           ; 關閉阻斷開關，恢復正常的複製監聽
+}
+
+
+;══════════[建立模板選單功能]══════════
+;@ Fx [模板] 建立菜單 ---BuildTemplateMenu(folderPath)
+;首字作為快捷鍵
+BuildTemplateMenu(folderPath) {
+    menuObj := Menu()
+
+    Loop Files folderPath "\*", "D" {
+    menuName := (SubStr(A_LoopFileName, 2, 1) = ".")
+        ? "📁 &" A_LoopFileName
+        : "📁 " A_LoopFileName
+    menuObj.Add(menuName, BuildTemplateMenu(A_LoopFileFullPath))
+    }
+
+    menuIndex := 1
+
+    Loop Files folderPath "\*", "F" {
+
+    if (A_LoopFileName = "clip.txt") {
+        try {
+            txt := FileRead(A_LoopFileFullPath, "UTF-8")
+
+            for line in StrSplit(txt, "`n") {
+                line := Trim(line)
+                if (line = "")
+                    continue
+
+                pasteText := StrReplace(line, "\\\", "`n")
+
+                if RegExMatch(line, "^&(.?)\.(.*)$", &m) {
+
+                    menuName := SubStr(m[2], 1, MaxItems)
+                    if (StrLen(m[2]) > MaxItems)
+                        menuName .= "..."
+
+                    menuObj.Add("&" m[1] ". " menuName, paste0.Bind(StrReplace(m[2], "\\\", "`n")))
+                }
+                else {
+                    menuName := SubStr(line, 1, MaxItems)
+                    if (StrLen(line) > MaxItems)
+                        menuName .= "..."
+
+                    menuObj.Add("&" menuIndex ". " menuName, paste0.Bind(pasteText))
+                    menuIndex++
+                }
+            }
+        }
+        continue
+    }
+
+    SplitPath A_LoopFileName,,, ,&fileName
+    menuName := (SubStr(A_LoopFileName, 2, 1) = ".") ? "&" fileName : fileName
+    menuObj.Add(menuName, TemplateAction.Bind(A_LoopFileFullPath))
+    }
+
+    return menuObj
+}
+
+
+;@ Fx [模板] 資料夾內容貼上
+;======================
+; 模板動作
+; TXT => 貼上內容
+; 其他 => 執行檔案
+;======================
+TemplateAction(filePath, *) {
+    SplitPath filePath, , , &ext
+    try {
+        if (ext = "txt") { ; AHK v2 的 = 預設不區分大小寫
+            A_Clipboard := FileRead(filePath, "UTF-8")
+            if ClipWait(0.5)
+            Send("^v")
+        } else {
+            Run(filePath)
+        }
+    } catch Error as err {
+        ToolTip("操作失敗：`n" filePath "`n`n" err.Message)
+        SetTimer(() => ToolTip(), -1500)
+    }
+}
+
+
+
+;@ 清除歷史紀錄（保留常駐項目）---ClearHistory()
+ClearHistory() {
+    global ClipHistory
+    ClipHistory := []    ; 清空一般歷史紀錄
+    Sleep 200
+    ShowClipMenu()
+    ToolTip("歷史記錄已清除")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+
+
+;@ GUI 編輯儲存的獨立回呼函式()---SaveChanges
+SaveChanges() {
+    guiData := editGui.Submit()                  ; 提交並隱藏 GUI
+    newValue := guiData.EditValue
+    
+    if (newValue != "") {
+        ; 從 GUI 的綁定屬性中取出目標陣列位置與類型
+        if (!editGui.TargetPinned) {
+            ClipHistory[editGui.TargetPos] := newValue
+        } else {
+            PinnedItems[editGui.TargetPos] := newValue
+        }
+        ToolTip("修改已保存")
+    } else {
+        ToolTip("內容不可為空，已取消編輯")
+    }
+    SetTimer(() => ToolTip(), -1500)
+    SetTimer(ShowClipMenu, -10)                  ; 非同步重新整理選單
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
