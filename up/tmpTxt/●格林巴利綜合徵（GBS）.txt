@@ -1,0 +1,247 @@
+
+Q: 格林-巴利綜合徵（GBS）最典型的肌力下降模式是什麼？
+ A: 對稱性上升性鬆弛性麻痺（symmetrical ascending flaccid paralysis）。
+
+Q: GBS 的無力通常先從哪個部位開始？
+ A: 雙下肢。
+
+Q: GBS 病人的肌張力（muscle tone）通常如何變化？
+ A: 降低（hypotonia）。
+
+Q: GBS 最重要的神經系統體徵是什麼？
+ A: 腱反射減弱或消失（areflexia）。
+
+Q: LMCHK 題目中看到「進行性四肢無力 + 腱反射消失」，首先應考慮什麼疾病？
+ A: Guillain-Barré syndrome（GBS）。
+
+Q: GBS 的感覺症狀最常見是什麼？
+ A: 遠端肢體麻木、刺痛（paresthesia）。
+
+Q: GBS 是以運動神經症狀還是感覺神經症狀為主？
+ A: 運動神經症狀為主。
+
+Q: GBS 病人的感覺異常與肌力下降相比，哪個較明顯？
+ A: 肌力下降較明顯。
+
+Q: GBS 最常見的腦神經受累是哪一對？
+ A: 第七對顏面神經（Facial nerve）。
+
+Q: GBS 出現雙側顏面神經麻痺時有何診斷價值？
+ A: 強烈支持 GBS 診斷。
+
+Q: GBS 最危及生命的神經系統併發症是什麼？
+ A: 呼吸肌麻痺導致呼吸衰竭。
+
+Q: GBS 呼吸衰竭主要因哪些肌肉受累？
+ A: 橫膈肌及肋間肌。
+
+Q: GBS 患者需緊密監測哪項功能以評估是否需要插管？
+ A: 呼吸功能（如 Vital Capacity）。
+
+Q: GBS 病程中出現心律不整代表什麼系統受累？
+ A: 自主神經系統。
+
+Q: GBS 常見的自主神經功能障礙有哪些？
+ A: 心律不整、血壓波動、尿瀦留、出汗異常。
+
+Q: GBS 常在什麼情況後出現？
+ A: 感染後數天至數週。
+
+Q: GBS 最常見相關細菌感染是哪種？
+ A: Campylobacter jejuni。
+
+Q: 哪種腸胃炎病原體與 GBS 關聯最強？
+ A: Campylobacter jejuni。
+
+Q: 哪些病毒感染與 GBS 有關？
+ A: CMV、EBV、Influenza、SARS-CoV-2 等。
+
+Q: GBS 的病理機轉屬於哪類疾病？
+ A: 自體免疫性周圍神經脫髓鞘疾病。
+
+Q: GBS 最常見病理亞型為何？
+ A: Acute inflammatory demyelinating polyradiculoneuropathy（AIDP）。
+
+Q: GBS 主要侵犯中樞神經還是周圍神經？
+ A: 周圍神經。
+
+Q: GBS 腦脊液（CSF）最經典變化為何？
+ A: Albuminocytologic dissociation。
+
+Q: Albuminocytologic dissociation 的意思是什麼？
+ A: CSF 蛋白升高但白血球數正常。
+
+Q: GBS 神經傳導檢查（NCS）最常見發現是什麼？
+ A: 脫髓鞘改變導致傳導速度下降。
+
+Q: GBS 的確診主要依靠哪些檢查？
+ A: 臨床表現、CSF、神經傳導檢查。
+
+Q: GBS 一線治療之一是什麼？
+ A: IVIG（靜脈免疫球蛋白）。
+
+Q: GBS 另一種標準治療是什麼？
+ A: Plasma exchange（血漿置換）。
+
+Q: IVIG 與血漿置換在 GBS 中的療效如何？
+ A: 效果相近。
+
+Q: 糖皮質激素（Corticosteroids）是否為 GBS 標準治療？
+ A: 不是，不建議作為常規治療。
+
+Q: GBS 與重症肌無力（MG）最大的反射差異是什麼？
+ A: GBS 反射消失；MG 反射通常正常。
+
+Q: GBS 與脊髓壓迫症最大的反射差異是什麼？
+ A: GBS 反射降低；脊髓壓迫常反射亢進。
+
+Q: GBS 屬於上運動神經元（UMN）還是下運動神經元（LMN）表現？
+ A: 下運動神經元表現。
+
+Q: 下運動神經元病變典型表現有哪些？
+ A: 肌無力、肌張力下降、反射減弱或消失。
+
+Q: 哪種 GBS 變異型以眼肌麻痺最具代表性？
+ A: Miller Fisher syndrome。
+
+Q: Miller Fisher syndrome 三聯徵是什麼？
+ A: Ophthalmoplegia、Ataxia、Areflexia。
+
+Q: Miller Fisher syndrome 常見相關抗體？
+ A: Anti-GQ1b antibody。
+
+Q: GBS 病程通常在多久達到高峰？
+ A: 約 2–4 週。
+
+Q: GBS 是否屬於急性神經疾病？
+ A: 是。
+
+Q: 一句話總結 GBS 最重要考點。
+ A: 感染後出現急性對稱性上升性鬆弛性麻痺（ascending flaccid paralysis）及腱反射消失（areflexia），可伴顏面神經麻痺、自主神經功能障礙及呼吸衰竭。
+
+Q: GBS 最典型癱瘓模式？
+ A: Ascending paralysis。
+
+Q: 最重要體徵？
+ A: Areflexia。
+
+Q: 最常見前驅感染？
+ A: Campylobacter jejuni。
+
+Q: CSF 經典表現？
+ A: Albuminocytologic dissociation。
+
+Q: 最致命併發症？
+ A: Respiratory failure。
+
+刪除重複題目
+
+已刪除重複及內容高度重疊題目，只保留每個核心考點一次：
+
+Q: 格林-巴利綜合徵（GBS）最典型的肌力下降模式是什麼？
+ A: 對稱性上升性鬆弛性麻痺（symmetrical ascending flaccid paralysis）。
+
+Q: GBS 的無力通常先從哪個部位開始？
+ A: 雙下肢。
+
+Q: GBS 病人的肌張力（muscle tone）通常如何變化？
+ A: 降低（hypotonia）。
+
+Q: GBS 最重要的神經系統體徵是什麼？
+ A: 腱反射減弱或消失（areflexia）。
+
+Q: LMCHK 題目中看到「進行性四肢無力 + 腱反射消失」，首先應考慮什麼疾病？
+ A: Guillain-Barré syndrome（GBS）。
+
+Q: GBS 的感覺症狀最常見是什麼？
+ A: 遠端肢體麻木、刺痛（paresthesia）。
+
+Q: GBS 是以運動神經症狀還是感覺神經症狀為主？
+ A: 運動神經症狀為主。
+
+Q: GBS 最常見的腦神經受累是哪一對？
+ A: 第七對顏面神經（Facial nerve）。
+
+Q: GBS 出現雙側顏面神經麻痺時有何診斷價值？
+ A: 強烈支持 GBS 診斷。
+
+Q: GBS 最危及生命的神經系統併發症是什麼？
+ A: 呼吸肌麻痺導致呼吸衰竭。
+
+Q: GBS 呼吸衰竭主要因哪些肌肉受累？
+ A: 橫膈肌及肋間肌。
+
+Q: GBS 患者需緊密監測哪項功能以評估是否需要插管？
+ A: 呼吸功能（如 Vital Capacity）。
+
+Q: GBS 病程中出現心律不整代表什麼系統受累？
+ A: 自主神經系統。
+
+Q: GBS 常見的自主神經功能障礙有哪些？
+ A: 心律不整、血壓波動、尿瀦留、出汗異常。
+
+Q: GBS 常在什麼情況後出現？
+ A: 感染後數天至數週。
+
+Q: GBS 最常見相關細菌感染是哪種？
+ A: Campylobacter jejuni。
+
+Q: 哪些病毒感染與 GBS 有關？
+ A: CMV、EBV、Influenza、SARS-CoV-2 等。
+
+Q: GBS 的病理機轉屬於哪類疾病？
+ A: 自體免疫性周圍神經脫髓鞘疾病。
+
+Q: GBS 最常見病理亞型為何？
+ A: Acute inflammatory demyelinating polyradiculoneuropathy（AIDP）。
+
+Q: GBS 主要侵犯中樞神經還是周圍神經？
+ A: 周圍神經。
+
+Q: GBS 腦脊液（CSF）最經典變化為何？
+ A: Albuminocytologic dissociation。
+
+Q: Albuminocytologic dissociation 的意思是什麼？
+ A: CSF 蛋白升高但白血球數正常。
+
+Q: GBS 神經傳導檢查（NCS）最常見發現是什麼？
+ A: 脫髓鞘改變導致傳導速度下降。
+
+Q: GBS 的確診主要依靠哪些檢查？
+ A: 臨床表現、CSF、神經傳導檢查。
+
+Q: GBS 一線治療有哪些？
+ A: IVIG（靜脈免疫球蛋白）或 Plasma exchange（血漿置換）。
+
+Q: IVIG 與血漿置換在 GBS 中的療效如何？
+ A: 效果相近。
+
+Q: 糖皮質激素（Corticosteroids）是否為 GBS 標準治療？
+ A: 不是，不建議作為常規治療。
+
+Q: GBS 與重症肌無力（MG）最大的反射差異是什麼？
+ A: GBS 反射消失；MG 反射通常正常。
+
+Q: GBS 與脊髓壓迫症最大的反射差異是什麼？
+ A: GBS 反射降低；脊髓壓迫常反射亢進。
+
+Q: GBS 屬於上運動神經元（UMN）還是下運動神經元（LMN）表現？
+ A: 下運動神經元表現。
+
+Q: 下運動神經元病變典型表現有哪些？
+ A: 肌無力、肌張力下降、反射減弱或消失。
+
+Q: 哪種 GBS 變異型以眼肌麻痺最具代表性？
+ A: Miller Fisher syndrome。
+
+Q: Miller Fisher syndrome 三聯徵是什麼？
+ A: Ophthalmoplegia、Ataxia、Areflexia。
+
+Q: Miller Fisher syndrome 常見相關抗體？
+ A: Anti-GQ1b antibody。
+
+Q: GBS 病程通常在多久達到高峰？
+ A: 約 2–4 週。
+
+Q: 一句話總結 GBS 最重要考點。
+ A: 感染後出現急性對稱性上升性鬆弛性麻痺（ascending flaccid paralysis）及腱反射消失（areflexia），可伴顏面神經麻痺、自主神經功能障礙及呼吸衰竭。
