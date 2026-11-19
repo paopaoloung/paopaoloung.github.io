@@ -6,50 +6,26 @@
 <title>檔案同步seasonLocal [2part]-1+Ga</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;max-width:900px;margin:0 auto;padding:12px;font-size:60px;line-height:1.6}
-h2{font-size:1.5rem;line-height:1.5;margin:8px 0 15px}
+body{font-family:Arial,sans-serif;max-width:900px;margin:0 auto;padding:12px;font-size:22px;line-height:1.5}
+h2{font-size:26px;margin:8px 0 15px}
 .row{display:flex;gap:10px;margin:12px 0}
-input{flex:1;min-width:0;height:56px;padding:0 16px;font-size:20px;border:1px solid #ccc;border-radius:12px;background:#fff}
-input[type=file]{padding:12px;height:auto}
-button{height:56px;padding:0 20px;font-size:20px;font-weight:700;border:0;border-radius:12px;background:#1976d2;color:#fff;cursor:pointer}
+input{flex:1;min-width:0;height:56px;padding:0 16px;font-size:22px;border:1px solid #ccc;border-radius:12px;background:#fff}
+input[type=file]{padding:10px;height:auto}
+button{height:56px;padding:0 20px;font-size:22px;font-weight:700;border:0;border-radius:12px;background:#1976d2;color:#fff;cursor:pointer}
 button:hover{background:#1565c0}
 button:active{transform:scale(.98)}
-#msg{margin:12px 0;font-size:20px;font-weight:700;min-height:32px}
+a{text-decoration:none;color:#06c}
+#msg{margin:12px 0;font-weight:700;min-height:32px}
 #list{margin-top:12px}
-.card{
-display:flex;
-align-items:center;
-gap:12px;
-background:#fff;
-border:1px solid #ddd;
-border-radius:16px;
-padding:14px;
-margin:12px 0;
-box-shadow:0 2px 6px rgba(0,0,0,.08)
-}
-
-.fn{
-flex:8;
-font-size:60px;
-line-height:1.4;
-word-break:break-all;
-overflow-wrap:anywhere
-}
-
-.act{
-flex:2
-}
-
-.act button{
-width:100%;
-height:56px
-}
+.card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #ddd;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.fn{flex:8;word-break:break-all;overflow-wrap:anywhere}
+.act{flex:2}
+.act button{width:100%}
 @media(max-width:700px){
 body{padding:10px}
 .row{flex-direction:column}
 input,button{width:100%}
-.card{padding:20px}
-.fn{font-size:22px}
+.card{flex-direction:column;align-items:stretch;padding:18px}
 }
 </style>
 </head>
@@ -127,15 +103,7 @@ loadFiles();
 async function loadFiles(){
 try{
 const files=await(await fetch(gas)).json();
-list.innerHTML=files.sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(f=>`
-<div class="card">
-<a class="fn" href="${f.url}" target="_blank">📄 ${f.name}</a>
-<div class="act">
-<button onclick="delFile(this.dataset.name)" data-name="${encodeURIComponent(f.name)}">🗑️刪除</button>
-</div>
-</div>
-`).join("");
-
+list.innerHTML=files.sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(f=>`<div class="card"><a class="fn" href="${f.url}" target="_blank">📄 ${f.name}</a><div class="act"><button onclick="delFile(this.dataset.name)" data-name="${encodeURIComponent(f.name)}">🗑️刪除</button></div></div>`).join("");
 }catch(e){console.error(e);list.innerHTML="<div class='card'>無法讀取檔案列表</div>";}
 }
 
