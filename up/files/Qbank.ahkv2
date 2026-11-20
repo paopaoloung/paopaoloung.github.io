@@ -1,0 +1,267 @@
+﻿
+#Requires AutoHotkey v2.0
+#SingleInstance force
+
+~Esc::{
+  ToolTip "reloading..."
+  sleep 1500
+  Reload
+}
+
+~^Esc::{
+  ToolTip "Exiting..."
+  sleep 1500
+  ExitApp
+}
+
+;guiMain0.Show("x0 y0 w" monWidth " h" monHeight)
+
+fileLoc:=A_ScriptDir "\studyBank"                                ;初始生成資料夾
+QAfilePath:=fileLoc "\Eng"
+MCfilePath:=fileLoc "\臨床"
+    for v in [fileLoc,QAfilePath,MCfilePath]                     ;不存在則建立
+    DirExist(v) || DirCreate(v)
+
+;@ini 設定
+iniTxt:="
+(
+[setting]
+baseFontSize=14
+showAns=1
+randomQ=1
+)"
+iniFile:=fileLoc "\QbankSetting.ini"                                  ;初始生成 ini 設定
+FileExist(iniFile) || FileAppend(iniTxt,iniFile,"UTF-8")
+
+;@ini讀取
+baseFontSize:=IniRead(iniFile,"setting","baseFontSize",14)    ;基本文字大小，如果不存在，預設為14
+
+;繼續：幫我寫個GUI，最頂有檔案、工具(源文件題目生成：模式1--QA卡片、模式2--單選題)、幫助
+;@GUI
+/*-------GUI--------
+GUI第1行：topbar: 檔案、工具(源文件題目生成：模式1--QA卡片、模式2--單選題)、幫助
+GUI第2行：✅ QA反轉、✅ 答案、✅ 筆記、✅ 隨機題目、[0] 倒計時(s)
+GUI第3行：極細的countdown bar
+GUI第4行：分為左(30%)、中(40%)、右(30%)三列；
+  左-行1：按鈕：打開...(o)
+  左-行2：TreeView：No|題目
+
+  中-Tab：QA|單選
+  中TabQA-行1：gui-Edit：顯示問題：題目02/100：<題目>
+  中TabQA-行2：gui-Edit：筆記預留
+  中TabQA-行3：gui-Text：答案
+  中TabQA-行4：gui-button：[<]  [√ 熟悉]  [△ 普通]  [× 忘記]  [>]
+  
+  右-行1：按鈕：保存...(s)
+  右-行2：TreeView1：No|題目  <顯示選了× 忘記的題目>
+  右-行3：TreeView2：No|題目  <顯示選了△ 普通的題目>
+
+GUI第最後一行為狀態欄：
+---------*/
+
+
+;@[ini]
+/*
+[setting]
+showAns=1
+randomQ=1
+[上一題]  [顯示答案]  [下一題]
+*/
+
+
+
+;@要求
+/*
+想寫個腳本，普適於學習記憶、問題後跟一長答案、問題後跟單選題、學習英文單詞：顯示英文作為問題，中文解釋(用戶回憶)作為答案，能反轉：解釋作為問題...。以導入TXT文件作為題庫，可選不同類型方法分析題庫生成題目，如問答/選擇題，暫不輸出代碼，問：有何建議
+
+
+支持的源文件格式：
+一、問題|答案：
+HOCM最常見症狀|勞力性呼吸困難
+ACEI禁忌症|雙側腎動脈狹窄
+apple|蘋果
+
+二、支援反轉模式，可互相交換：
+模式1：問題>答案
+模式2：答案>問題
+
+
+
+三、支援長答案：
+HOCM病人蹲下時雜音為何減弱|
+增加前負荷
+左室流出道梗阻減輕
+SAM減少
+因此雜音減弱
+(|符號前面內容為問題、|後為答案)
+
+
+四、支援5選1的單選題、答案次序可打亂隨機，但A-E位置不變：
+apple：|
+A.蘋果
+B.香蕉
+C.梨
+D.橙
+E.西瓜
+
+
+五、用家可選擇記憶程度：√ 熟悉  △ 普通  × 忘記
+六、間隔重複(SRS)
+× 忘記---1分鐘後再出
+又錯---3分鐘後再出
+再錯---10分鐘後再出
+
+
+將結果記錄到db_ana.ini：
+√ 熟悉  △ 普通  × 忘記
+---------------------
+;單選題
+題目
+A.
+B.
+C.
+D.
+答案:C
+
+
+
+
+*/
+;===================================================
+
+;@GUI-size-setting
+MonitorGetWorkArea(, &l, &t, &r, &b)
+monWidth:=r-l, monHeight:=b-t
+
+gMarginx:=20                                                    ;內容左邊距
+midWinGap:=10                                                ;三欄中間分隔大小
+
+guiMain0W:=Round(monWidth*0.7)                ;主窗口--寬
+guiMain0H:=Round(monHeight*0.8)               ;主窗口--高
+
+;========== 三欄寬度 ==========
+midW:=Round(guiMain0W*0.6)                      ;中間欄
+    tabGap:=40                                                  ;中間 tab控件內的左右邊界設定
+midW_inner:=midW-tabGap
+leftW:=Floor((guiMain0W-gMarginx*2-midWinGap*2-midW)/2)     ;向下取整
+rightW:=leftW
+
+btnH:=40                                                  ;所有按鈕--高
+
+
+
+guiMain0:=Gui("+Resize","QBank")
+guiMain0.SetFont("s" baseFontSize, "Verdana")
+;================= Menu =================
+mFile:=Menu()
+mFile.Add("打開題庫`tCtrl+O", OpenFile)
+mFile.Add("保存結果`tCtrl+S", SaveFile)
+mFile.Add()
+mFile.Add("退出", (*)=>ExitApp)
+
+OpenFile(*){
+}
+
+SaveFile(*){
+}
+
+
+mTool:=Menu()
+mGen:=Menu()
+mGen.Add("模式1 - QA卡片", (*)=>0)
+mGen.Add("模式2 - 單選題", (*)=>0)
+mTool.Add("源文件題目生成", (*)=>0)
+
+mHelp:=Menu()
+mHelp.Add("使用說明", (*)=>0)
+mHelp.Add("關於", (*)=>0)
+
+;@第1行---檔案、工具、幫助
+mb:=MenuBar()
+mb.Add("檔案",mFile)
+mb.Add("工具",mTool)
+mb.Add("幫助",mHelp)
+guiMain0.MenuBar:=mb
+
+;@第2行---✅ 反轉QA、✅ 答案、✅ 筆記...
+guiMain0.AddCheckbox("section x" gMarginx " Checked","反轉QA")
+guiMain0.AddCheckbox("ys Checked","答案")
+guiMain0.AddCheckbox("ys Checked","筆記")
+guiMain0.AddCheckbox("ys","隨機題目")
+
+
+;@第3行---功能窗口
+;@@【左--ListView】
+ ;-----------------------------------------------------------------------
+randBtnW:=50
+guiMain0.AddButton("section x" gMarginx " w" leftW-randBtnW " h" btnH,"打開...(O)")
+guiMain0.AddButton("ys xp+" leftW-randBtnW " w" randBtnW " h" btnH, "亂")
+lvQ:=guiMain0.AddListView("xs w" leftW " h" guiMain0H/3*2,["No.","題目"])
+
+;@@【中--問題】
+tab:=guiMain0.AddTab3("Buttons ys w" midW " h" guiMain0H/3*2,["QA","單選"])
+tab.GetPos(&tx,&ty,&tw,&th)
+MsgBox tx
+tab.UseTab("QA")
+;@@@ 倒計時 ---時間設定
+  guiMain0.AddText("Section","倒計時(s)：")
+  guiMain0.AddEdit("ys-3 w50 Center","0")
+
+;@@@ 倒計時 ---Countdown Bar
+  guiMain0.AddProgress("ys w" midW_inner/10*7 " h20 c00CC00 vProg",100)
+
+;@@@ 題目 ---Edit內容
+  guiMain0.AddText("xs","題目02/100：")
+  guiMain0.AddEdit("xs y+2 -VScroll w" midW_inner " h120 vQuestion","<題目>")
+  guiMain0.AddEdit("w" midW_inner " h120 vNote","筆記預留")
+  guiMain0.AddEdit("w" midW_inner " h100 vAnswer","答案")
+
+;@@@ 最下面按鈕<✔️✖️◉>
+bbtnW:=Floor(midW_inner/5)
+guiMain0.AddButton("xs h" btnH " w" bbtnW,"<")
+guiMain0.AddButton("x+0 yp h" btnH " w" bbtnW,"✔️ 熟悉 [0]")
+guiMain0.AddButton("x+0 yp h" btnH " w" bbtnW,"◉ 普通 [Enter]")
+guiMain0.AddButton("x+0 yp h" btnH " w" bbtnW,"✖️ 忘記 [•]")
+guiMain0.AddButton("x+0 yp h" btnH " w" bbtnW,">")
+
+;================= MC =================
+
+tab.UseTab("單選")
+
+guiMain0.AddEdit("x" leftW+20 " y80 w" rightW " h120 ReadOnly","題目")
+
+guiMain0.AddRadio("x" leftW+30 " y220","A")
+guiMain0.AddRadio("x" leftW+30 " y250","B")
+guiMain0.AddRadio("x" leftW+30 " y280","C")
+guiMain0.AddRadio("x" leftW+30 " y310","D")
+
+guiMain0.AddButton("x" leftW+20 " y380 w100 h30","提交答案")
+
+tab.UseTab()
+
+;@@【右--ListView】
+guiMain0.AddButton("ys xp+" midW+midWinGap*2 " w" rightW,"保存...(S)")
+lvBad:=guiMain0.AddListView(" w" rightW " h180",["No.","✖️ 完全忘記"])
+lvNormal:=guiMain0.AddListView("w" rightW " h180",["No.","◉ 一般熟練"])
+
+;================= Status =================
+
+guiMain0.AddStatusBar()
+guiMain0["msctls_statusbar321"].SetText("Ready...")
+
+;================= Demo =================
+
+Loop 20
+    lvQ.Add("",A_Index,"題目" A_Index)
+
+y0:=(monHeight-guiMain0H)/2
+guiMain0.Show("xcenter w" guiMain0W " h" guiMain0H " y" y0)
+
+
+
+
+
+
+
+
+
