@@ -1,0 +1,233 @@
+﻿
+#Requires AutoHotkey v2.0
+#SingleInstance force
+
+;探測視窗大小
+MonitorGetWorkArea(, &l, &t, &r, &b)
+monW:=r-l, monH:=b-t
+iniSet:="A_ComputerName"
+
+
+
+~Esc::{
+  ToolTip "reloading..."
+  sleep 1500
+  Reload
+}
+
+~^Esc::{
+  ToolTip "Exiting..."
+  sleep 1500
+  ExitApp
+}
+
+;guiMain0.Show("x0 y0 w" monWidth " h" monHeight)
+
+fileLoc:=A_ScriptDir "\QBankLib"                                ;初始生成資料夾
+QAfilePath:=fileLoc "\Eng"
+MCfilePath:=fileLoc "\臨床"
+    for v in [fileLoc,QAfilePath,MCfilePath]                     ;不存在則建立
+    DirExist(v) || DirCreate(v)
+
+;@ini 設定
+iniTxt:="
+(
+
+
+)"
+iniFile:=fileLoc "\QbankSetting.ini"                                  ;初始生成 ini 設定
+FileExist(iniFile) || FileAppend(iniTxt,iniFile,"UTF-8")
+
+;@ 讀取 ini 裡的所有設定
+iniSet0:=Map()                 ;-------------通用設定 iniSet0["fontSize"]
+for z in StrSplit(IniRead(iniFile,"set0"),"`n","`r"){
+    x:=StrSplit(z,"=")
+    if x.Length=2
+    iniSet0[x[1]]:=x[2]
+}
+;msgbox iniSet0["fontSize"]
+
+ini:=Map()                 ;-------------調取電腦名稱設定 ini["guiW"]
+for z in StrSplit(IniRead(iniFile,A_ComputerName),"`n","`r"){
+    x:=StrSplit(z,"=")
+    if x.Length=2
+    ini[x[1]]:=x[2]
+}
+
+
+
+;@GUI
+guiMain0:=Gui("+Resize")
+guiMain0.SetFont("s" iniSet0["fontSize"], "Verdana")
+
+;@@最頂端---子菜單
+mFile:=Menu()
+mFile.Add("打開題庫`tCtrl+O", OpenFile)
+mFile.Add("保存結果`tCtrl+S", SaveFile)
+mFile.Add()
+mFile.Add("退出", (*)=>ExitApp)
+
+OpenFile(*){
+}
+
+SaveFile(*){
+}
+
+mTool:=Menu()
+mGen:=Menu()
+mGen.Add("模式1 - QA卡片", (*)=>0)
+mGen.Add("模式2 - 單選題", (*)=>0)
+mTool.Add("源文件題目生成", (*)=>0)
+
+mHelp:=Menu()
+mHelp.Add("使用說明", (*)=>0)
+mHelp.Add("關於", (*)=>0)
+;-------------------
+
+;@@第1行---檔案、工具、幫助
+mb:=MenuBar()
+mb.Add("檔案",mFile)
+mb.Add("工具",mTool)
+mb.Add("幫助",mHelp)
+guiMain0.MenuBar:=mb
+
+
+;@第2行---✅ 反轉QA、✅ 答案、✅ 筆記...
+ck(v){
+return v?" Checked":""
+}
+gMagX0:=ini["gMarginx"]
+cbReverse  := guiMain0.AddCheckbox("section x" gMagX0 ck(iniSet0["revQA"]),"反轉QA")
+cbAns        := guiMain0.AddCheckbox("ys" ck(iniSet0["showAns"]),"答案")
+cbNotes     := guiMain0.AddCheckbox("ys" ck(iniSet0["showNotes"]),"筆記")
+cbRandom := guiMain0.AddCheckbox("ys" ck(iniSet0["randomQ"]),"隨機題目")
+  guiMain0.AddButton("ys h" ini["btnH"],"QA卡片")
+  guiMain0.AddButton("ys x+2 h" ini["btnH"],"單選")
+
+    ;MsgBox cbRandom.Value
+
+;@第3行---功能窗口
+;@@【左--ListView】
+ ;--------------------------------------------
+    L_lvW      := (ini["guiW"]-gMagX0*3-ini["M_tabW"])/2  ;gMagX0*3=左右邊界+中間間隔*2(等於1個邊界)
+    tabGap    := gMagX0/2   ;第3行中間間隔寬=左邊界/2
+    L_lvBtnW := L_lvW-ini["randBtnW"]
+    L_lvH := ini["M_tabH"]-ini["btnH"]
+
+guiMain0.AddButton("section x" gMagX0 " w" L_lvBtnW " h" ini["btnH"],"打開...(O)")
+guiMain0.AddButton("ys xp+" L_lvBtnW " w" ini["randBtnW"] " h" ini["btnH"],"亂")
+L_lv:=guiMain0.AddListView("xs y+0 w" L_lvW " h" L_lvH,["No.","題目"])
+L_lv.Opt("+Redraw")
+    Loop 20
+    L_lv.Add("",A_Index,"題目1234567891011" A_Index)
+
+
+
+ ;------------------------------------------
+;@@【中--問題】
+tabInW := ini["M_tabW"]-ini["gMarginx"]
+
+guiMain0.AddGroupBox("section ys x+" tabGap " w" ini["M_tabW"] " h" ini["M_tabH"], "題目 02/100：")
+
+;@@@ 題目 ---EditQ
+    editQX0         := ini["btnH"]+5
+    editQfontSize := iniSet0["fontSize"]+5
+guiMain0.SetFont("w600 s" editQfontSize, "Verdana")
+guiMain0.AddEdit("vQuestion xp+" tabGap " w" tabInW " yp+" editQX0 " h" L_lvH/2-10,"題目123")
+;@@@ 倒計時 ---時間設定
+guiMain0.AddProgress("h10 y+0  c00CC00 vProg w" tabInW,100)
+
+guiMain0.AddEdit("vNote y+" tabGap " w" tabInW " h" L_lvH/4-tabGap,"筆記預留")
+guiMain0.AddEdit("vAnswer y+" tabGap " w" tabInW " h" L_lvH/4-tabGap,"答案")
+guiMain0.SetFont("")
+
+
+;@@@ 最下面按鈕<✔️✖️◉>
+guiMain0.SetFont("s" iniSet0["fontSize"], "Verdana")
+    bbtnW := Floor(ini["M_tabW"]/5)
+    bbtnH  := ini["btnH"]*2
+btnPre  := guiMain0.AddButton("h" bbtnH " w" bbtnW,"<")
+btnGd   := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"✔️ 熟悉 [0]")
+btnOK   := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"◉ 普通 [Enter]")
+btnBad  := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"✖️ 忘記 [•]")
+btnNext := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,">")
+
+btnPre.OnEvent("Click", BtnPre_fx)
+btnGd.OnEvent("Click", BtnGd_fx)
+btnOK.OnEvent("Click", BtnOK_fx)
+btnBad.OnEvent("Click", BtnBad_fx)
+btnNext.OnEvent("Click", BtnNext_fx)
+BtnPre_fx(*) {
+ToolTip "pre"
+}
+
+BtnGd_fx(*) {
+}
+
+BtnOK_fx(*) {
+}
+
+BtnBad_fx(*) {
+}
+
+BtnNext_fx(*) {
+}
+
+
+;@@【右--ListView】
+    r_lvBadH := L_lvH/4*3
+    r_lvOKH := L_lvH/4
+;L_lvBtnW  ;r_lvBadH ;ini["randBtnW"]
+guiMain0.AddButton("section ys x+0" " w" L_lvW/2 " h" ini["btnH"],"保存...(S)")
+guiMain0.AddButton("ys x+0" " w" L_lvW/2  " h" ini["btnH"],"測")
+r_lvBad:=guiMain0.AddListView("y+0 xs w" L_lvW " h" r_lvBadH,["No.","✖️ 完全忘記"])
+r_lvOK:=guiMain0.AddListView("y+0 w" L_lvW " h" r_lvOKH,["No.","◉ 一般熟練"])
+
+/*
+
+;M_tab.GetPos(&tx,&ty,&tw,&th)
+;MsgBox tx "-----" ty "-----" tw "-----" th
+
+;M_tab.UseTab("QA")
+M_tab.UseTab(1)
+  guiMain0.AddText("Section y+10 x+" tabGap ,"題目 02/100：")
+  ;guiMain0.AddText("Section","題目 02/100：")
+
+  guiMain0.AddEdit("-VScroll w" tabInW " h100 ","答案")
+
+
+
+
+M_tab.UseTab()
+
+
+
+
+
+
+
+;================= MC =================
+
+tab.UseTab("單選")
+
+guiMain0.AddEdit("x" leftW+20 " y80 w" rightW " h120 ReadOnly","題目")
+
+guiMain0.AddRadio("x" leftW+30 " y220","A")
+guiMain0.AddRadio("x" leftW+30 " y250","B")
+guiMain0.AddRadio("x" leftW+30 " y280","C")
+guiMain0.AddRadio("x" leftW+30 " y310","D")
+
+guiMain0.AddButton("x" leftW+20 " y380 w100 h30","提交答案")
+
+tab.UseTab()
+
+
+*/
+
+guiMain0.AddStatusBar()
+guiMain0["msctls_statusbar321"].SetText("Ready...")
+
+y0:=Floor((monH - ini["guiW"])/2)-200    ;初始主窗 y 顯示位置
+guiMain0.Show("xcenter w" ini["guiW"] " h" ini["guiH"] " y" y0)
+
+
