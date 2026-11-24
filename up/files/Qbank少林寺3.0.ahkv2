@@ -1,0 +1,686 @@
+﻿
+#Requires AutoHotkey v2.0
+#SingleInstance force
+
+;探測視窗大小
+MonitorGetWorkArea(, &l, &t, &r, &b)
+; 取得當前螢幕的 DPI 縮放倍率 (例如 150% 縮放時，scale 為 1.5)
+scale := A_ScreenDPI / 96
+; 將物理像素換算為邏輯像素
+monW := (r - l) / scale
+monH := (b - t) / scale
+
+
+iniSet:="A_ComputerName"
+
+
+
+~Esc::{
+  ToolTip "reloading..."
+  sleep 1500
+  Reload
+}
+
+~^Esc::{
+  ToolTip "Exiting..."
+  sleep 1500
+  ExitApp
+}
+
+curDB := []
+qaDB  := []    ;保存QA題庫
+orgLoc := ""
+curIdx   := 0   ;題號
+orgTxt   := "`n"
+
+
+fileLoc:=A_ScriptDir "\QBankLib"                                ;初始生成資料夾
+QAfilePath:=fileLoc "\Eng"
+MCfilePath:=fileLoc "\臨床"
+    for v in [fileLoc,QAfilePath,MCfilePath]                     ;不存在則建立
+    DirExist(v) || DirCreate(v)
+
+;@ini 設定
+iniTxt:="
+(
+;通用設定 --------iniSet0["fontSize"]
+[set0]
+fontSize=14
+revQA=0
+showAns=1
+showTips=1
+randomQ=0
+
+;家用電腦設定----- ini["guiW"]
+[TABLET-NEMJVN0G]
+guiW=1200
+guiH=700
+gMarginx=10
+;三欄中間分隔--寬度=gMarginx/2
+T_tabBtnW=70
+
+;中間 tab
+M_tabW=600
+M_tabH=500
+
+;所有按鈕-高度
+btnH=30
+editTimerW=50
+
+
+[GUI_desktop]
+guiW=1200
+guiH=700
+gMarginx=10
+T_tabBtnW=70
+;三欄中間分隔--寬度=gMarginx/2
+
+;中間 tab
+M_tabW=600
+M_tabH=500
+
+;所有按鈕-高度
+btnH=30
+editTimerW=50
+
+)"
+
+iniFile:=fileLoc "\QbankSetting.ini"                                  ;生成初始 ini 設定
+FileExist(iniFile) || FileAppend(iniTxt,iniFile,"UTF-8")
+
+;@ 讀取 ini 裡的所有設定
+;msgbox iniSet0["fontSize"]
+iniSet0:=Map()                 ;-------------通用設定 iniSet0["fontSize"]
+for z in StrSplit(IniRead(iniFile,"set0"),"`n","`r"){
+    x:=StrSplit(z,"=")
+    if x.Length=2
+    iniSet0[x[1]]:=x[2]
+}
+
+ini:=Map()                 ;-------------調取電腦名稱設定 ini["guiW"]
+try
+    txt := IniRead(iniFile, A_ComputerName)
+catch
+   txt := IniRead(iniFile, "GUI_desktop")
+for z in StrSplit(txt, "`n", "`r"){
+    x := StrSplit(z, "=")
+    if x.Length = 2
+        ini[x[1]] := x[2]
+}
+
+
+startTick := A_TickCount
+  pauseTick := 0
+  pauseMs := 0
+
+;@GUI
+guiMain0:=Gui("+Resize")
+guiMain0.SetFont("s" iniSet0["fontSize"], "Verdana")
+
+;@@最頂端---子菜單
+mFile:=Menu()
+mFile.Add("打開題庫`tCtrl+O", OpenFile)
+mFile.Add("保存結果`tCtrl+S", SaveFile)
+mFile.Add()
+mFile.Add("退出", (*)=>ExitApp)
+
+OpenFile(*){
+}
+
+SaveFile(*){
+}
+
+mTool:=Menu()
+mGen:=Menu()
+mGen.Add("模式1 - QA卡片", (*)=>0)
+mGen.Add("模式2 - 單選題", (*)=>0)
+mTool.Add("源文件題目生成", (*)=>0)
+
+mHelp:=Menu()
+mHelp.Add("使用說明", (*)=>0)
+mHelp.Add("關於", (*)=>0)
+;-------------------
+
+;@@第1行---檔案、工具、幫助
+mb:=MenuBar()
+mb.Add("檔案",mFile)
+mb.Add("工具",mTool)
+mb.Add("幫助",mHelp)
+guiMain0.MenuBar:=mb
+
+
+ck(v){
+return v?" Checked":""
+}
+
+gMagX0 := ini["gMarginx"]
+btnH      := ini["btnH"]
+
+;@--------【第2行】;@--------
+;@@ Checkbox---✅筆記
+cbTips := guiMain0.AddCheckbox("section x" gMagX0 ck(iniSet0["showTips"]),"筆記")
+cbTips.OnEvent("Click",(*)=>(IniWrite(cbAns.Value,iniFile,"set0","showTips"),ShowQA(curIdx)))
+
+;@@ Checkbox---✅答案
+cbAns := guiMain0.AddCheckbox("ys x+0" ck(iniSet0["showAns"]),"答案")
+cbAns.OnEvent("Click",(*)=>(IniWrite(cbAns.Value,iniFile,"set0","showAns"),ShowQA(curIdx)))
+
+;@@ Checkbox---✅反轉QA
+cbRev := guiMain0.AddCheckbox("ys x+0" ck(iniSet0["revQA"]),"反轉QA🔃")
+cbRev.OnEvent("Click",(*)=>(IniWrite(cbRev.Value,iniFile,"set0","revQA"),ShowQA(curIdx)))
+
+;@@ Checkbox---✅[隨機題目]
+cbRandom := guiMain0.AddCheckbox("ys x+0", "隨機🔀")
+cbRandom.Value := iniSet0["randomQ"]
+cbRandom.OnEvent("Click", RandomFx)
+
+;@@ Checkbox---✅聲音
+cbSound := guiMain0.AddCheckbox("ys x+0", "聲音")
+;cbSound.Value := iniSet0["randomQ"]
+cbSound.OnEvent("Click", RandomFx)
+
+;@@【tab】---["QA0","單選", "單選1", "單選1", "單選0"]
+tabNme := ["QA卡片", "單選"]
+tabW:=Floor(ini["T_tabBtnW"]*tabNme.Length)
+tab:=guiMain0.AddTab3("Buttons ys h" btnH " w" tabW,tabNme)
+tab.UseTab(0)
+
+/*
+;@@ btn---[QA卡片]
+btnQA:=guiMain0.AddButton("ys h" btnH,"QA卡片")
+btnQA.OnEvent("Click", OpenQA)
+OpenQA(*){
+    global orgTxt
+    engQA(orgTxt)
+}
+;@@ btn---[單選]
+  mcBtn:=guiMain0.AddButton("ys x+2 h" btnH,"單選")
+mcBtn.OnEvent("Click", mcBtn_Click)
+mcBtn_Click(*)
+{
+sp:=ComObject("SAPI.SpVoice")
+sp.Speak("Margin")
+}
+*/
+
+;@@ ComboBox---倒計時 cbBoxS
+cbBoxS:=guiMain0.AddComboBox("ys x+0 w" ini["editTimerW"], ["5","10","15","20",])
+guiMain0.AddText("ys x+0", "(s)")
+
+;@@ btn---[重啟]
+guiMain0.AddButton("x+10 h"  btnH, "重啟(r)").OnEvent("Click", (*) => Reload())
+
+;@@ btn---[發聲]
+;@@@ [發聲] ---speakInt(txtEng)
+guiMain0.AddButton("x+10 h"  btnH, "🔊").OnEvent("Click", (*) => speakInt(editQ.Value))
+
+;@@@ [發聲] ---googleTTS
+guiMain0.AddButton("x+0 h"  btnH, "👄").OnEvent("Click", (*) => googleTTS(editQ.Value))
+
+;@@@ [發聲] ---世界真人錄音發音 userSp
+guiMain0.AddButton("x+0 h"  btnH, "😁💬").OnEvent("Click", (*) => userSp(editQ.Value))
+
+txtTime:=guiMain0.AddText("ys x" Floor(ini["guiW"]*0.9), "00:00:00")
+txtTimeSymb:=guiMain0.AddText("ys x+2" , " ▶  ")
+txtTime.OnEvent("Click", txtTime_Click)
+
+
+
+
+;@第3行---功能窗口
+;@@【左】------------------------------
+    L_lvW      := (ini["guiW"]-gMagX0*3-ini["M_tabW"])/2  ;gMagX0*3=左右邊界+中間間隔*2(等於1個邊界)
+    tabGap    := gMagX0/2   ;第3行中間間隔寬=左邊界/2
+    L_lvBtnW := L_lvW/3
+    L_lvH := ini["M_tabH"]-btnH
+
+;@@【左-btn-加題(&A)】按鈕
+guiMain0.AddButton("section x" gMagX0 " w" L_lvBtnW " h" btnH, "+題(&A)").OnEvent("Click", openTxt)
+    openTxt(*) {
+        global
+        if (orgLoc := FileSelect(1, A_ScriptDir "\QBankLib\Eng\原始文件"))
+        orgTxt .= FileRead(orgLoc, "UTF-8") "`n"
+        engQA(orgTxt)
+    }
+
+
+
+
+;@@【左-btn-源文件txt】按鈕
+openSource:=guiMain0.AddButton("ys xp+" L_lvBtnW " w" L_lvBtnW " h" btnH,"源txt(&S)")   ;📄
+    openSource.OnEvent("Click",(*)=>FileExist(orgLoc)?Run(orgLoc):(ToolTip("文件不存在"),SetTimer(()=>ToolTip(),-1500)))
+;@@【左-btn-新題庫(&N)】按鈕
+nwDB:=guiMain0.AddButton("ys xp+" L_lvBtnW " w" L_lvBtnW " h" btnH,"新(&N)")
+    nwDB.OnEvent("Click",NewDB)
+    NewDB(*){
+    global
+    qaDB := []
+    curDB := []
+    L_lv.Delete()
+
+        orgTxt:=""
+        openTxt()
+ToolTip qaDB.Length "`n" curDB.Length
+    }
+
+;@@【左--ListView】
+L_lv:=guiMain0.AddListView("xs y+0 w" L_lvW " h" L_lvH,["No.","題目"])
+L_lv.Opt("+Redraw")
+L_lv.OnEvent("Click", Lv_Click)
+    Lv_Click(LV, Row) {
+    global curIdx, curDB
+    if !Row
+    return
+    curIdx := Row
+    ShowQA(Row)
+}
+
+
+
+ ;------------------------------------------
+;@@【中】------------------------------
+;tab.UseTab("QA")
+tabInW := ini["M_tabW"]-ini["gMarginx"]
+;@@【中--題目統計】-txtPos
+txtPos := guiMain0.AddText("section ys x+" tabGap, "題目 001/100")
+txtPos.OnEvent("Click", TxtPos_Click)
+txtPos.OnEvent("DoubleClick", TxtPos_DblClick)
+  pTick := 0
+  TxtPos_Click(*) {
+    global pTick
+    pTick := !pTick
+    if pTick
+    SetTimer(UpdateProg, 0)      ; 暫停
+    else
+    SetTimer(UpdateProg, 1000)   ; 恢復
+}
+sOld:=""
+  TxtPos_DblClick(*) {
+  global count, prog, cbBoxS, sOld
+    if (cbBoxS.Text != "0") {    ; 0 如改為"0"不能自動執行計時器
+       sOld := cbBoxS.Text
+       count := 0
+       prog.Value := 0
+       cbBoxS.Text:=0
+    SetTimer(UpdateProg, 0)          ; 歸零並停止
+    } Else {
+    cbBoxS.Text := sOld
+    tCountDnFx(cbBoxS)
+    }
+}
+
+;@@【中-文字大小】 -----SetFont 600
+    editQX0         := btnH+5
+    editQfontSize := iniSet0["fontSize"]+5
+guiMain0.SetFont("w600 s" editQfontSize, "Verdana")
+
+;@@【中-edit-問題框】---editQ
+editQ:=guiMain0.AddEdit("xp+" tabGap " w" tabInW " yp+" editQX0 " h" L_lvH/2-10,"")
+editQ.Opt("BackgroundFFF0C0")
+;@@【中-Progress-倒計時bar】---prog
+prog := guiMain0.AddProgress("h10 y+0  c00CC00 w" tabInW,100)
+
+;@@【中-edit-筆記框】---editT
+editT:=guiMain0.AddEdit("y+" tabGap " w" tabInW " h" L_lvH/4-tabGap,"")
+
+;@@【中-edit-答案框】---editA
+editA:=guiMain0.AddEdit("vAnswer y+" tabGap " w" tabInW " h" L_lvH/4-tabGap,"")
+guiMain0.SetFont("")
+
+
+
+;@@@ 最下面按鈕<✔️✖️◉>
+guiMain0.SetFont("s" iniSet0["fontSize"], "Verdana")
+    bbtnW := Floor(ini["M_tabW"]/5)
+    bbtnH  := btnH*2
+btnPre  := guiMain0.AddButton("h" bbtnH " w" bbtnW,"<👈")
+                 btnPre.OnEvent("Click", PrevQA)
+btnGd   := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"✔️ 熟悉[➖]" )  ;😆👍
+btnBad  := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"✖️ 忘記 [Enter]") ;😵👎
+btnOK   := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"◉ 普通 [0]")  ;😶
+btnNext := guiMain0.AddButton("x+0 yp h" bbtnH " w" bbtnW,"👉>")
+                 btnNext.OnEvent("Click", NextQA)
+
+btnGd.OnEvent("Click", BtnGd_fx)
+btnOK.OnEvent("Click", BtnOK_fx)
+btnBad.OnEvent("Click", BtnBad_fx)
+BtnGd_fx(*) {
+}
+
+BtnOK_fx(*) {
+}
+
+BtnBad_fx(*) {
+}
+
+
+;@@【右】------------------------------
+;@@【右--ListView】
+    r_lvBadH := L_lvH/4*3
+    r_lvOKH := L_lvH/4
+;L_lvBtnW  ;r_lvBadH ;ini["editTimerW"]
+guiMain0.AddButton("section ys x+0" " w" L_lvW/2 " h" btnH,"保存💾(S)")
+guiMain0.AddButton("ys x+0" " w" L_lvW/2  " h" btnH,"測")
+r_lvBad:=guiMain0.AddListView("y+0 xs w" L_lvW " h" r_lvBadH,["No.","✖️ 完全忘記"])
+r_lvOK:=guiMain0.AddListView("y+0 w" L_lvW " h" r_lvOKH,["No.","◉ 一般熟練"])
+
+
+guiMain0.AddStatusBar()
+guiMain0["msctls_statusbar321"].SetText("Ready...")
+
+;@ ━━━━━━━━━━ [Tab 控件分組] ━━━━━━━━━━
+;@@ tabGroups ---控件綁定 tabGroups
+tabGroups := [
+     ;第 1 頁 ("QA卡片") 要顯示的控件陣列
+    [editQ, editA, editT, prog],     ;txtPos
+
+    ;第 2 頁 ("單選") 要顯示的控件陣列
+    ;[radio1, radio2]
+]
+
+
+;@@ tab.OnEvent---Change
+tab.OnEvent("Change", OnTabChg)
+OnTabChg(ctrl, info) {
+    ; 1. 先執行原本的控件顯示/隱藏切換
+    tabCtrls(ctrl.Value, tabGroups)
+    
+    ; 2. 判斷是否點擊了第 1 個分頁 ("QA卡片")
+    if (ctrl.Value = 1) {
+        global orgTxt
+        engQA(orgTxt)
+    }
+}
+; ━━━━━━━━━━ [/Tab 控件分組/] ━━━━━━━━━━
+
+
+;@ GUI---guiMain0.show()
+y0:=Floor((monH - ini["guiH"])*0.3)    ;初始主窗 y 顯示位置
+;editQ.Value:= y0 "`n" monH "`n" ini["guiH"]
+y0 := Floor((t / scale) + (monH - ini["guiH"])*0.5)
+guiMain0.Show("xcenter w" ini["guiW"] " h" ini["guiH"] " y" y0)
+
+
+
+;@ [tab控件] ---自動切換各組控件的顯示狀態 (tabCtrls)
+tabCtrls(activeIndex, groups) {
+for pageIndex, ctrlList in groups {
+    isVisible := (pageIndex = activeIndex)
+    for ctrl in ctrlList
+      ctrl.Visible := isVisible
+    }
+}
+
+
+
+;@ 亂序 fx ---RandomFx(ctrl, *)
+    RandomFx(ctrl, *) {
+    global
+    iniSet0["randomQ"] := ctrl.Value
+    IniWrite(ctrl.Value, iniFile, "set0", "randomQ")
+
+    ; 記錄目前題目
+    oldQ := curDB.Length ? curDB[curIdx]["Q"] : ""
+
+    ; 重建 curDB
+    curDB := qaDB.Clone()
+
+    if ctrl.Value
+    {
+        Loop curDB.Length
+        {
+            r := Random(A_Index, curDB.Length)
+            tmp := curDB[A_Index]
+            curDB[A_Index] := curDB[r]
+            curDB[r] := tmp
+        }
+    }
+
+    ; 重建 ListView
+    L_lv.Delete()
+    for i, v in curDB
+        L_lv.Add("", i, v["Q"])
+
+    ; 找回原題目
+    curIdx := 1
+    if oldQ
+        for i, v in curDB
+            if (v["Q"] = oldQ) {
+                curIdx := i
+                break
+            }
+
+    ShowQA(curIdx)
+    L_lv.Modify(curIdx, "Select Focus Vis")
+}
+
+
+
+SetTimer(UpdateTime, 1000)
+UpdateTime()
+txtTime_Click(*){
+    global pauseTick, pauseMs
+    if pauseTick {
+        pauseMs += A_TickCount - pauseTick
+        pauseTick := 0
+        SetTimer(UpdateTime, 1000)
+        txtTimeSymb.Value:="▶"
+    } else {
+        pauseTick := A_TickCount
+        SetTimer(UpdateTime, 0)
+        txtTimeSymb.Value:="⏸"
+    }
+}
+
+
+;@ 倒計時 fx ---tCountDnFx(ctrl, *)
+cbBoxS.OnEvent("Change", tCountDnFx)
+t:=0,count:=0
+tCountDnFx(ctrl, *) {
+global t, count, prog
+    if (ctrl.Text = "" || ctrl.Text <= 0) {
+        count := 0
+        prog.Value := 0
+        SetTimer(UpdateProg, 0)
+        return
+    }
+    t := Integer(ctrl.Text)
+    count := t
+    prog.Value := 100
+    SetTimer(UpdateProg, 0)
+    SetTimer(UpdateProg, 1000)
+}
+
+
+
+
+;@ • 解析orgTxt ---QA
+engQA(txt, *) {
+/*-----------------
+anima
+n. 灵魂、灵气
+#:
+拆词：anima → 爱你妈（谐音）
+记忆：要爱你的妈妈，是她给了你生命
+
+dominant
+adj. 占优势的
+#:
+拆词：dominant → 都没男的（谐音）
+记忆：这里除了我以外都没有男的，说明我是有优势的
+...
+    • qatTxt：整題原文
+    • q：問題
+    • a：答案（第 2 行到最後一行）
+    • t：筆記（#: 後全部內容）
+    • qaDB：整個題庫陣列（避免和局部變量 qa 混名）
+-----------------*/
+    global
+global
+
+    qaDB := []
+    curDB := []
+    L_lv.Delete()
+
+    txt := StrReplace(txt, "`r`n`r`n", "$")
+
+    for qatTxt in StrSplit(txt, "$")
+    {
+        if !qatTxt
+            continue
+
+        qatTxt := StrReplace(qatTxt, "#:`r`n", "$")
+
+        x := StrSplit(qatTxt, "$")
+        r := StrSplit(Trim(x[1]), "`n", "`r")
+
+        q := Trim(r[1])
+        t := x.Length > 1 ? Trim(x[2]) : ""
+
+        a := ""
+        Loop r.Length - 1
+            a .= (a ? "`n" : "") Trim(r[A_Index + 1])
+
+        if q
+            qaDB.Push(Map("Q", q, "A", a, "T", t))
+    }
+
+    curDB := qaDB.Clone()
+
+    ; 隨機且不重複
+    if cbRandom.Value
+    {
+        Loop curDB.Length
+        {
+            r := Random(A_Index, curDB.Length)
+            tmp := curDB[A_Index]
+            curDB[A_Index] := curDB[r]
+            curDB[r] := tmp
+        }
+    }
+
+    ; 重建 ListView
+    L_lv.Delete()
+
+    for i, v in curDB
+        L_lv.Add("", i, v["Q"])
+
+    if !curDB.Length
+        return
+
+    curIdx := 1
+    ShowQA(1)
+}
+
+
+
+;@倒計時bar fx---UpdateProg()
+UpdateProg() {
+    global t, count, prog, cbBoxS
+    if (--count <= 0) {
+        NextQA()
+        tCountDnFx(cbBoxS) ; 重新開始倒數
+        return
+    }
+    prog.Value := Round(count * 100 / t)
+}
+
+
+;@ 顯示題目 fx ---ShowQA(idx)
+ShowQA(idx){
+global
+    if !curDB.Length
+        return
+    curIdx := idx
+    q := cbRev.Value ? curDB[curIdx]["A"] : curDB[curIdx]["Q"]
+    a := cbRev.Value ? curDB[curIdx]["Q"] : curDB[curIdx]["A"]
+    editQ.Value := q
+    editA.Value := cbAns.Value ? a : ""
+    editT.Value := cbTips.Value ? curDB[curIdx]["T"] : ""
+    txtPos.Value := Format("題目 {:02}/{:02}：", curIdx, curDB.Length)
+}
+
+;@!!!!!!!!!! 刷新題庫 fx ---RefreshLV()
+RefreshLV(){
+    global curDB, L_lv
+    L_lv.Opt("-Redraw")
+    L_lv.Delete()
+    for i,v in curDB
+    L_lv.Add("",i,v["Q"])
+    L_lv.Opt("+Redraw")
+}
+
+;@ 上一題 < fx ---PrevQA(*)
+PrevQA(*){
+    global curDB, curIdx, L_lv
+    if !curDB.Length
+        return
+    curIdx := curIdx<=1 ? curDB.Length : curIdx-1
+    ShowQA(curIdx)
+    L_lv.Modify(curIdx, "Select Focus Vis")
+}
+
+;@ 下一題 > fx ---NextQA()
+NextQA(*){
+    global curDB, curIdx, L_lv
+    if !curDB.Length
+        return
+    curIdx := curIdx >= curDB.Length ? 1 : curIdx + 1
+    ShowQA(curIdx)
+    L_lv.Modify(curIdx,"Select Focus Vis")
+}
+
+;@ 經過時間 fx ---UpdateTime()
+UpdateTime(){
+    global startTick, pauseMs, txtTime
+    t := Floor((A_TickCount - startTick - pauseMs) / 1000)
+    h := Floor(t / 3600)
+    m := Floor(Mod(t, 3600) / 60)
+    s := Mod(t, 60)
+    txtTime.Value := Format("{:02}:{:02}:{:02}", h, m, s)
+}
+
+
+;@ 發音
+;@@ 發音1 ---內建 Microsoft Speech API speakInt()
+speakInt(txtEng){
+    static sp:=ComObject("SAPI.SpVoice")
+    sp.Speak(txtEng, 1)
+}  ;speakInt("dominant")
+
+;@@ 發音2a ---googleTTS()
+googleTTS(txtEng){
+;Run("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" txtEng)
+    static wmp := ComObject("WMPlayer.OCX")
+    if (Trim(txtEng) = "")
+    return
+    encodedTxt := UriEncode(txtEng)
+    wmp.URL := "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" encodedTxt
+    wmp.controls.play()
+}
+
+
+;@@發音3 ---世界真人錄音發音humanSp
+userSp(txtEng){
+    Run("https://forvo.com/word/" txtEng "/")
+}
+
+
+
+
+; 發音2b ---googleTTS() input text 轉碼用
+UriEncode(str) {
+    buf := Buffer(StrPut(str, "UTF-8") - 1)
+    StrPut(str, buf, "UTF-8")
+    res := ""
+    loop buf.Size {
+        byte := NumGet(buf, A_Index - 1, "UChar")
+        if (byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x5A) || (byte >= 0x61 && byte <= 0x7A) || byte = 0x2D || byte = 0x5F || byte = 0x2E || byte = 0x7E
+            res .= Chr(byte)
+        else
+            res .= Format("%{:02X}", byte)
+    }
+    return res
+}
+
+
