@@ -26,6 +26,13 @@ sessionStorage.clear();---清空全部 Session Storage
 localStorage.clear() ---清空全部 localStorage：如果網站還儲存了其他設定，也會一起刪除。
 
 
+
 資料庫頪型：map---地圖，要x, y座標才能定點位置，所以要一對(key, value)
+
+ahkv2:
+FileExist(iniFile) || FileAppend(iniTxt,iniFile,"UTF-8")
+條件-符合 || 不符合
+條件符合--執行左邊 || 條件不符合--執行右邊
+
 
 
