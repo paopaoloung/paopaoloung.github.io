@@ -34,5 +34,15 @@ FileExist(iniFile) || FileAppend(iniTxt,iniFile,"UTF-8")
 條件-符合 || 不符合
 條件符合--執行左邊 || 條件不符合--執行右邊
 
+fruits := ["蘋果", "香蕉", "橘子"] ---數組=編學號
+fruits[2]="香蕉"
+
+config := Map(                      ---Map:地圖，要xy座標才能定位目標
+    "URL", "https://example.com",
+    "Timeout", 3000,
+    "TopMost", true
+)
+config["URL"]="https://example.com"
+
 
 
